@@ -576,4 +576,7 @@ if (!nativeBinding) {
 }
 
 module.exports = nativeBinding
-module.exports.ping = nativeBinding.ping
+module.exports.DependencyType = nativeBinding.DependencyType
+module.exports.ResourceKind = nativeBinding.ResourceKind
+module.exports.solve = nativeBinding.solve
+module.exports.TimingPolicy = nativeBinding.TimingPolicy
