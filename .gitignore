@@ -1,1 +1,4 @@
 .planning/
+*.node
+target/
+node_modules/

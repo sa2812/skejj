@@ -1,0 +1,14 @@
+{
+  "name": "skejj",
+  "version": "0.1.0",
+  "description": "Schedule engine - Rust core with Node.js bindings",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "napi build --platform --release --package skejj-node --output-dir .",
+    "build:debug": "napi build --platform --package skejj-node --output-dir ."
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.5.1"
+  }
+}
