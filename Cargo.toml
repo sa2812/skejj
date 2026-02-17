@@ -1,0 +1,7 @@
+[workspace]
+members = ["crates/engine", "crates/node-bindings"]
+resolver = "2"
+
+[profile.release]
+lto = true
+strip = "symbols"
