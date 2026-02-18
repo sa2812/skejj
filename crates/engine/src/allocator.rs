@@ -362,7 +362,9 @@ pub fn allocate_resources(
 // ---------------------------------------------------------------------------
 
 /// Returns (feasible_start, blocking_resource_name).
-/// The blocking_resource_name is the last resource that was at capacity.
+/// `blocking_resource_name` is the name of the first resource that prevented the
+/// step from starting at `search_from` (used for warning messages when the step
+/// is ultimately placed past its late start).
 fn find_earliest_feasible(
     search_from: u32,
     duration: u32,
@@ -385,25 +387,30 @@ fn find_earliest_feasible(
     candidates.sort_unstable();
     candidates.dedup();
 
-    let mut last_bad_resource = String::new();
+    // Track the resource that first blocked the step at search_from
+    let mut first_blocker = String::new();
+    let mut found_start: Option<u32> = None;
 
     for t in candidates {
         let (ok, bad) = check_all_timed(t, duration, timed_needs, timelines, resource_capacity);
         if ok {
-            return (t, String::new());
+            found_start = Some(t);
+            break;
         } else if let Some(rid) = bad {
-            last_bad_resource = resource_names
-                .get(rid.as_str())
-                .copied()
-                .unwrap_or(rid.as_str())
-                .to_string();
+            // Record the first blocking resource (at search_from)
+            if first_blocker.is_empty() {
+                first_blocker = resource_names
+                    .get(rid.as_str())
+                    .copied()
+                    .unwrap_or(rid.as_str())
+                    .to_string();
+            }
         }
     }
 
-    // If no boundary-based candidate worked, return the fallback (search_from)
-    // This should not happen in practice since the empty state is always feasible
-    // but guard defensively.
-    (search_from, last_bad_resource)
+    // If no boundary-based candidate worked, fall back to search_from.
+    // This should not happen in practice since the empty state is always feasible.
+    (found_start.unwrap_or(search_from), first_blocker)
 }
 
 // ---------------------------------------------------------------------------

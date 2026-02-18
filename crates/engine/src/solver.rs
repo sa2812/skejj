@@ -378,10 +378,34 @@ pub(crate) fn cpm(template: &ScheduleTemplate) -> Result<CpmResult, SolveError> 
 // Public API
 // ---------------------------------------------------------------------------
 
-/// Solve the given schedule template using CPM (Critical Path Method).
-/// Resource allocation is not performed here — that is handled in 02-02.
+/// Solve the given schedule template using CPM and optional resource allocation.
+///
+/// 1. Runs the Critical Path Method (CPM) to compute earliest/latest start
+///    times and identify the critical path.
+/// 2. If the template defines resources, runs the greedy resource allocator to
+///    stagger conflicting steps within their float windows.
+/// 3. Recalculates total duration after allocation (steps may be pushed out).
 pub fn solve(template: &ScheduleTemplate) -> Result<SolvedSchedule, SolveError> {
-    let result = cpm(template)?;
+    let mut result = cpm(template)?;
+
+    // Resource allocation (greedy with float-window shifting, added in 02-02)
+    let mut alloc_warnings: Vec<String> = Vec::new();
+    if !template.resources.is_empty() {
+        alloc_warnings = crate::allocator::allocate_resources(
+            template,
+            &mut result.solved_steps,
+            &result.early_starts,
+            &result.late_starts,
+        );
+    }
+
+    // Recalculate total duration after allocation (steps may be pushed beyond CPM project_end)
+    let total_duration_mins = result
+        .solved_steps
+        .iter()
+        .map(|s| s.end_offset_mins)
+        .max()
+        .unwrap_or(result.project_end);
 
     let critical_path_step_ids: Vec<String> = result
         .solved_steps
@@ -391,7 +415,7 @@ pub fn solve(template: &ScheduleTemplate) -> Result<SolvedSchedule, SolveError> 
         .collect();
 
     let summary = ScheduleSummary {
-        total_duration_mins: result.project_end,
+        total_duration_mins,
         critical_path_step_ids,
     };
 
@@ -399,7 +423,7 @@ pub fn solve(template: &ScheduleTemplate) -> Result<SolvedSchedule, SolveError> 
         template_id: template.id.clone(),
         solved_steps: result.solved_steps,
         summary,
-        warnings: Vec::new(),
+        warnings: alloc_warnings,
     })
 }
 
