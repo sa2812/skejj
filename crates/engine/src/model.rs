@@ -175,6 +175,10 @@ pub struct SolvedStep {
     /// Wall-clock end time (ISO 8601) — populated alongside `start_time`.
     pub end_time: Option<String>,
     pub assigned_resources: Vec<AssignedResource>,
+    /// Total float (slack) in minutes. Zero means this step is on the critical path.
+    pub total_float_mins: u32,
+    /// True when `total_float_mins == 0` (step is on the critical path).
+    pub is_critical: bool,
 }
 
 /// Schedule-level metadata produced alongside the solved steps.

@@ -8,3 +8,6 @@ crate-type = ["lib"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+petgraph = "0.8"
+thiserror = "2"
+chrono = "0.4"
