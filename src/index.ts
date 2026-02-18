@@ -3,6 +3,8 @@ import { Command } from 'commander';
 import { makeCommand } from './commands/make';
 import { checkCommand } from './commands/check';
 import { newCommand } from './commands/new';
+import { generateCommand } from './commands/generate';
+import { configCommand } from './commands/config';
 
 const program = new Command();
 
@@ -14,5 +16,7 @@ program
 program.addCommand(makeCommand);
 program.addCommand(checkCommand);
 program.addCommand(newCommand);
+program.addCommand(generateCommand);
+program.addCommand(configCommand);
 
 program.parse();
