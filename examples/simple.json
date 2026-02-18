@@ -1,0 +1,32 @@
+{
+  "id": "simple",
+  "name": "Simple Test Schedule",
+  "steps": [
+    {
+      "id": "a",
+      "title": "Step A",
+      "durationMins": 30,
+      "dependencies": [],
+      "resourceNeeds": []
+    },
+    {
+      "id": "b",
+      "title": "Step B",
+      "durationMins": 45,
+      "dependencies": [{ "stepId": "a", "dependencyType": "FinishToStart" }],
+      "resourceNeeds": []
+    },
+    {
+      "id": "c",
+      "title": "Step C",
+      "durationMins": 20,
+      "dependencies": [{ "stepId": "a", "dependencyType": "FinishToStart" }],
+      "resourceNeeds": []
+    }
+  ],
+  "tracks": [],
+  "resources": [],
+  "timeConstraint": {
+    "startTime": "2026-03-01T10:00:00"
+  }
+}
