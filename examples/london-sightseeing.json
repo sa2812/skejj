@@ -1,0 +1,125 @@
+{
+  "id": "london-weekend-sightseeing",
+  "name": "London Weekend Sightseeing",
+  "description": "A two-day London itinerary covering major landmarks and cultural highlights. Dinner steps use ALAP timing to push them as late in the day as possible.",
+  "timeConstraint": {
+    "startTime": "2026-07-04T09:00:00"
+  },
+  "tracks": [
+    { "id": "day1", "name": "Day 1" },
+    { "id": "day2", "name": "Day 2" }
+  ],
+  "resources": [],
+  "steps": [
+    {
+      "id": "tower-of-london",
+      "title": "Tower of London",
+      "description": "Explore the medieval fortress, Crown Jewels, and Beefeaters",
+      "durationMins": 120,
+      "trackId": "day1",
+      "dependencies": [],
+      "resourceNeeds": []
+    },
+    {
+      "id": "borough-market-lunch",
+      "title": "Borough Market lunch",
+      "description": "Graze through Borough Market — street food, cheese, and fresh bread",
+      "durationMins": 60,
+      "trackId": "day1",
+      "dependencies": [
+        { "stepId": "tower-of-london", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "thames-walk",
+      "title": "Thames Southbank walk",
+      "description": "Stroll along the Southbank past the Globe Theatre and Tate Modern",
+      "durationMins": 45,
+      "trackId": "day1",
+      "dependencies": [
+        { "stepId": "borough-market-lunch", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "tate-modern",
+      "title": "Tate Modern",
+      "description": "Visit the Turbine Hall and rotating exhibitions",
+      "durationMins": 90,
+      "trackId": "day1",
+      "dependencies": [
+        { "stepId": "thames-walk", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "day1-dinner",
+      "title": "Day 1 dinner",
+      "description": "Dinner at a riverside restaurant in Southbank",
+      "durationMins": 60,
+      "trackId": "day1",
+      "timingPolicy": "Alap",
+      "dependencies": [
+        { "stepId": "tate-modern", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "british-museum",
+      "title": "British Museum",
+      "description": "Rosetta Stone, Egyptian mummies, Greek antiquities — allow plenty of time",
+      "durationMins": 150,
+      "trackId": "day2",
+      "dependencies": [
+        { "stepId": "day1-dinner", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "covent-garden-lunch",
+      "title": "Covent Garden lunch",
+      "description": "Lunch and street performance watching in Covent Garden piazza",
+      "durationMins": 45,
+      "trackId": "day2",
+      "dependencies": [
+        { "stepId": "british-museum", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "westminster-walk",
+      "title": "Westminster walk",
+      "description": "Big Ben, Houses of Parliament, Westminster Abbey exterior, St James's Park",
+      "durationMins": 60,
+      "trackId": "day2",
+      "dependencies": [
+        { "stepId": "covent-garden-lunch", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "london-eye",
+      "title": "London Eye",
+      "description": "30-minute capsule ride with panoramic city views",
+      "durationMins": 30,
+      "trackId": "day2",
+      "dependencies": [
+        { "stepId": "westminster-walk", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    },
+    {
+      "id": "day2-dinner",
+      "title": "Day 2 dinner",
+      "description": "Farewell dinner at a restaurant near the Eye",
+      "durationMins": 60,
+      "trackId": "day2",
+      "timingPolicy": "Alap",
+      "dependencies": [
+        { "stepId": "london-eye", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": []
+    }
+  ]
+}
