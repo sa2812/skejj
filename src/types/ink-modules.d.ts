@@ -1,6 +1,20 @@
 // Ambient type declarations for ESM-only packages that don't resolve
 // under moduleResolution: "node". tsx handles the actual imports at runtime.
 
+declare module 'conf' {
+  interface ConfOptions {
+    projectName: string;
+    defaults?: Record<string, unknown>;
+  }
+  class Conf {
+    constructor(options: ConfOptions);
+    get<T = unknown>(key: string): T | undefined;
+    set(key: string, value: unknown): void;
+    readonly store: Record<string, unknown>;
+  }
+  export default Conf;
+}
+
 declare module 'ink' {
   import type { ReactNode, ReactElement } from 'react';
 
