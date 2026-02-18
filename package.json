@@ -14,12 +14,16 @@
     "schema:gen": "tsx scripts/generate-schema.ts"
   },
   "dependencies": {
+    "@inkjs/ui": "^2.0.0",
     "commander": "^14.0.0",
+    "ink": "^6.7.0",
+    "react": "^19.1.0",
     "zod": "^3.0.0"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.5.1",
     "@types/node": "^25.2.3",
+    "@types/react": "^19.1.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "zod-to-json-schema": "^3.25.1"
