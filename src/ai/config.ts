@@ -3,6 +3,9 @@
  * Provides persistent storage of LLM provider settings.
  */
 
+export const VALID_PROVIDERS = ['openai', 'anthropic'] as const;
+export type ValidProvider = (typeof VALID_PROVIDERS)[number];
+
 export interface SkejjConfig {
   provider: string;
   model: string;
@@ -37,21 +40,25 @@ export async function loadAiConfig(): Promise<SkejjConfig | null> {
 
 /**
  * Set a single key in the AI config store.
+ * Validates provider values against the VALID_PROVIDERS list.
  */
 export async function setAiConfig(key: string, value: string): Promise<void> {
   const validKeys = ['provider', 'model', 'apiKey'];
   if (!validKeys.includes(key)) {
     throw new Error(`Unknown config key: "${key}". Valid keys: ${validKeys.join(', ')}`);
   }
+  if (key === 'provider' && !VALID_PROVIDERS.includes(value as ValidProvider)) {
+    throw new Error(`Unknown provider "${value}". Supported: ${VALID_PROVIDERS.join(', ')}`);
+  }
   const conf = await getConf();
   conf.set(key, value);
 }
 
 /**
- * Returns all stored config values.
+ * Returns all stored config values with missing required keys.
  * Masks apiKey: shows only the last 4 characters.
  */
-export async function showAiConfig(): Promise<Record<string, string>> {
+export async function showAiConfig(): Promise<{ values: Record<string, string>; missing: string[] }> {
   const conf = await getConf();
   const store = conf.store;
   const result: Record<string, string> = {};
@@ -62,5 +69,8 @@ export async function showAiConfig(): Promise<Record<string, string>> {
       result[k] = String(v);
     }
   }
-  return result;
+  const missing: string[] = [];
+  if (!store['provider']) missing.push('provider');
+  if (!store['apiKey']) missing.push('apiKey');
+  return { values: result, missing };
 }
