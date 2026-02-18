@@ -2,6 +2,7 @@
   "name": "skejj",
   "version": "0.1.0",
   "description": "Schedule engine - Rust core with Node.js bindings",
+  "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
   "bin": {
