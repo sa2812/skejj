@@ -5,6 +5,7 @@ import { checkCommand } from './commands/check';
 import { newCommand } from './commands/new';
 import { generateCommand } from './commands/generate';
 import { configCommand } from './commands/config';
+import { adjustCommand } from './commands/adjust';
 
 const program = new Command();
 
@@ -18,5 +19,6 @@ program.addCommand(checkCommand);
 program.addCommand(newCommand);
 program.addCommand(generateCommand);
 program.addCommand(configCommand);
+program.addCommand(adjustCommand);
 
 program.parse();
