@@ -6,7 +6,7 @@ import type { AdjustAppProps } from '../ui/AdjustApp.js';
 
 // Import napi bindings via createRequire to load CJS .node module from ESM context
 const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index');
+const bindings = require('../../index') as typeof import('../../index.js');
 
 export const adjustCommand = new Command('adjust')
   .description('Interactively adjust a solved schedule in a re-solve loop')

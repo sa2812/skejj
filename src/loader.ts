@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { scheduleSchema, type ScheduleInput } from './schema';
+import { scheduleSchema, type ScheduleInput } from './schema.js';
 
 export type LoadResult =
   | { success: true; data: ScheduleInput }
@@ -29,7 +29,7 @@ export function loadSchedule(filePath: string): LoadResult {
 
   const result = scheduleSchema.safeParse(json);
   if (!result.success) {
-    const errors = result.error.issues.map((issue) => {
+    const errors = result.error.issues.map((issue: { path: (string | number)[]; message: string }) => {
       const p = issue.path.join('.');
       return p ? `${p}: ${issue.message}` : issue.message;
     });

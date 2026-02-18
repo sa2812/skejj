@@ -4,7 +4,7 @@ import { loadSchedule } from '../loader.js';
 
 // Import napi bindings via createRequire to load CJS .node module from ESM context
 const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index');
+const bindings = require('../../index') as typeof import('../../index.js');
 
 export const checkCommand = new Command('check')
   .description('Validate a schedule file without solving')

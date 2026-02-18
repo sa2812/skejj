@@ -9,7 +9,7 @@ import type { WizardAppProps } from '../ui/WizardApp.js';
 
 // Import napi bindings via createRequire to load CJS .node module from ESM context
 const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index');
+const bindings = require('../../index') as typeof import('../../index.js');
 
 export const newCommand = new Command('new')
   .description('Guided wizard to create a new schedule')

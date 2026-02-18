@@ -19,7 +19,7 @@ import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/inde
 
 // Import napi bindings via createRequire to load CJS .node module from ESM context
 const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index');
+const bindings = require('../../index') as typeof import('../../index.js');
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];
 

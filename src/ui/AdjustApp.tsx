@@ -10,7 +10,7 @@ import type { SolvedSchedule } from '../../index.js';
 
 // Import napi bindings via createRequire to load CJS .node module from ESM context
 const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index');
+const bindings = require('../../index') as typeof import('../../index.js');
 
 // ---- helpers ----------------------------------------------------------------
 
