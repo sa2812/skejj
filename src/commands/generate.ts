@@ -67,13 +67,22 @@ export const generateCommand = new Command('generate')
       description: string,
       options: { output?: string; format?: string },
     ) => {
-      // 1. Load AI config (env vars take priority over config file — 12-factor)
+      // 1. Load AI config and run preflight check (env vars take priority — 12-factor)
       const config = await loadAiConfig();
       const effectiveProvider = process.env.SKEJJ_PROVIDER ?? config?.provider;
+      const effectiveApiKey = process.env.SKEJJ_API_KEY ?? config?.apiKey;
+
+      const configErrors: string[] = [];
       if (!effectiveProvider) {
-        console.error(
-          'No LLM provider configured. Run: skejj config set provider openai',
-        );
+        configErrors.push('No LLM provider configured. Run: skejj config set provider openai');
+      }
+      if (!effectiveApiKey) {
+        configErrors.push('No API key configured. Run: skejj config set apiKey <your-key>');
+      }
+      if (configErrors.length > 0) {
+        console.error('Missing AI configuration:\n');
+        configErrors.forEach((e) => console.error(`  ${e}`));
+        console.error('\nOr set environment variables: SKEJJ_PROVIDER, SKEJJ_API_KEY');
         process.exit(1);
       }
 
