@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { makeCommand } from './commands/make';
-import { checkCommand } from './commands/check';
-import { newCommand } from './commands/new';
-import { generateCommand } from './commands/generate';
-import { configCommand } from './commands/config';
-import { adjustCommand } from './commands/adjust';
+import { makeCommand } from './commands/make.js';
+import { checkCommand } from './commands/check.js';
+import { newCommand } from './commands/new.js';
+import { generateCommand } from './commands/generate.js';
+import { configCommand } from './commands/config.js';
+import { adjustCommand } from './commands/adjust.js';
 
 const program = new Command();
 

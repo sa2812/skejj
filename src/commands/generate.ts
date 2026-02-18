@@ -7,17 +7,18 @@
  *   -f, --format <type>    Export format: gantt, csv, json (same as skejj make)
  */
 
+import { createRequire } from 'node:module';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
-import { loadAiConfig } from '../ai/config';
-import { buildModel } from '../ai/provider';
-import { generateScheduleFromText } from '../ai/generate';
-import { renderGantt } from '../renderer';
-import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters';
+import { loadAiConfig } from '../ai/config.js';
+import { buildModel } from '../ai/provider.js';
+import { generateScheduleFromText } from '../ai/generate.js';
+import { renderGantt } from '../renderer.js';
+import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
 
-// Import napi bindings - use require to handle native .node module
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// Import napi bindings via createRequire to load CJS .node module from ESM context
+const require = createRequire(import.meta.url);
 const bindings = require('../../index') as typeof import('../../index');
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];

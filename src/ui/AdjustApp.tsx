@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import React, { useState, useCallback } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { TextInput, Select, MultiSelect } from '@inkjs/ui';
@@ -5,10 +6,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { ScheduleInput } from '../schema.js';
 import { renderGantt } from '../renderer.js';
-import type { SolvedSchedule } from '../../index';
+import type { SolvedSchedule } from '../../index.js';
 
-// Import napi bindings - use require to handle native .node module
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// Import napi bindings via createRequire to load CJS .node module from ESM context
+const require = createRequire(import.meta.url);
 const bindings = require('../../index') as typeof import('../../index');
 
 // ---- helpers ----------------------------------------------------------------

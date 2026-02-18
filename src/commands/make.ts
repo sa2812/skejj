@@ -1,12 +1,13 @@
+import { createRequire } from 'node:module';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
-import { loadSchedule } from '../loader';
-import { renderGantt } from '../renderer';
-import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters';
+import { loadSchedule } from '../loader.js';
+import { renderGantt } from '../renderer.js';
+import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
 
-// Import napi bindings - use require to handle native .node module
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// Import napi bindings via createRequire to load CJS .node module from ESM context
+const require = createRequire(import.meta.url);
 const bindings = require('../../index') as typeof import('../../index');
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];

@@ -1,5 +1,5 @@
-import type { SolvedSchedule, SolvedStep } from '../index';
-import type { ScheduleInput } from './schema';
+import type { SolvedSchedule, SolvedStep } from '../index.js';
+import type { ScheduleInput } from './schema.js';
 
 export interface RenderOptions {
   quiet: boolean;

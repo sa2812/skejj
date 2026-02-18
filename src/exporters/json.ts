@@ -1,5 +1,5 @@
-import type { SolvedSchedule } from '../../index';
-import type { ScheduleInput } from '../schema';
+import type { SolvedSchedule } from '../../index.js';
+import type { ScheduleInput } from '../schema.js';
 
 /**
  * Render a solved schedule as pretty-printed JSON.

@@ -3,7 +3,7 @@
  * Validates that all stepId and resourceId references exist in the schedule.
  */
 
-import type { ScheduleInput } from '../schema';
+import type { ScheduleInput } from '../schema.js';
 
 /**
  * Check referential integrity of a schedule.

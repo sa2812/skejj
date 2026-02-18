@@ -1,10 +1,11 @@
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import React from 'react';
 import { loadSchedule } from '../loader.js';
 import type { AdjustAppProps } from '../ui/AdjustApp.js';
 
-// Import napi bindings - use require to handle native .node module
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// Import napi bindings via createRequire to load CJS .node module from ESM context
+const require = createRequire(import.meta.url);
 const bindings = require('../../index') as typeof import('../../index');
 
 export const adjustCommand = new Command('adjust')

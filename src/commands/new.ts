@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
@@ -6,8 +7,8 @@ import { renderGantt } from '../renderer.js';
 import type { ScheduleInput } from '../schema.js';
 import type { WizardAppProps } from '../ui/WizardApp.js';
 
-// Import napi bindings - use require to handle native .node module
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// Import napi bindings via createRequire to load CJS .node module from ESM context
+const require = createRequire(import.meta.url);
 const bindings = require('../../index') as typeof import('../../index');
 
 export const newCommand = new Command('new')

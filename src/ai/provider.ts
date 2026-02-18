@@ -5,7 +5,7 @@
  */
 
 import type { LanguageModel } from 'ai';
-import type { SkejjConfig } from './config';
+import type { SkejjConfig } from './config.js';
 
 /**
  * Build a LanguageModel instance from config + env var overrides.

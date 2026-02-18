@@ -1,12 +1,12 @@
-import type { SolvedSchedule } from '../../index';
-import type { ScheduleInput } from '../schema';
-import { renderMermaidGantt } from './mermaid';
-import { renderCsv } from './csv';
-import { renderJson } from './json';
+import type { SolvedSchedule } from '../../index.js';
+import type { ScheduleInput } from '../schema.js';
+import { renderMermaidGantt } from './mermaid.js';
+import { renderCsv } from './csv.js';
+import { renderJson } from './json.js';
 
-export { renderMermaidGantt } from './mermaid';
-export { renderCsv } from './csv';
-export { renderJson } from './json';
+export { renderMermaidGantt } from './mermaid.js';
+export { renderCsv } from './csv.js';
+export { renderJson } from './json.js';
 
 /** Supported export format names. */
 export type FormatName = 'gantt' | 'csv' | 'json';

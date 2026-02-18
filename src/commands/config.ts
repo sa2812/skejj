@@ -7,7 +7,7 @@
  */
 
 import { Command } from 'commander';
-import { setAiConfig, showAiConfig } from '../ai/config';
+import { setAiConfig, showAiConfig } from '../ai/config.js';
 
 export const configCommand = new Command('config')
   .description('Manage LLM provider configuration');
