@@ -408,6 +408,10 @@ pub struct SolvedStep {
     pub start_time: Option<String>,
     pub end_time: Option<String>,
     pub assigned_resources: Vec<AssignedResource>,
+    /// Total float (slack) in minutes. Zero means this step is on the critical path.
+    pub total_float_mins: u32,
+    /// True when total_float_mins == 0.
+    pub is_critical: bool,
 }
 
 impl From<SolvedStep> for engine::SolvedStep {
@@ -419,6 +423,8 @@ impl From<SolvedStep> for engine::SolvedStep {
             start_time: v.start_time,
             end_time: v.end_time,
             assigned_resources: v.assigned_resources.into_iter().map(Into::into).collect(),
+            total_float_mins: v.total_float_mins,
+            is_critical: v.is_critical,
         }
     }
 }
@@ -432,6 +438,8 @@ impl From<engine::SolvedStep> for SolvedStep {
             start_time: v.start_time,
             end_time: v.end_time,
             assigned_resources: v.assigned_resources.into_iter().map(Into::into).collect(),
+            total_float_mins: v.total_float_mins,
+            is_critical: v.is_critical,
         }
     }
 }
@@ -493,19 +501,64 @@ impl From<engine::SolvedSchedule> for SolvedSchedule {
 }
 
 // ---------------------------------------------------------------------------
+// Validation result
+// ---------------------------------------------------------------------------
+
+#[napi(object)]
+#[derive(Debug, Clone)]
+pub struct ValidationResult {
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+impl From<skejj_engine::validator::ValidationResult> for ValidationResult {
+    fn from(v: skejj_engine::validator::ValidationResult) -> Self {
+        ValidationResult {
+            errors: v.errors,
+            warnings: v.warnings,
+        }
+    }
+}
+
+impl From<ValidationResult> for skejj_engine::validator::ValidationResult {
+    fn from(v: ValidationResult) -> Self {
+        skejj_engine::validator::ValidationResult {
+            errors: v.errors,
+            warnings: v.warnings,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Exported functions
 // ---------------------------------------------------------------------------
 
-/// Stub for the schedule solver. Phase 2 will implement the actual engine.
+/// Solve a schedule template using CPM (Critical Path Method).
+/// Validates the template first; returns an error if validation fails.
+/// Resource allocation is not yet applied (added in 02-02).
 #[napi]
 pub fn solve(
     template: ScheduleTemplate,
     inventory: Option<ResourceInventory>,
 ) -> napi::Result<SolvedSchedule> {
-    // Suppress unused variable warning during stub phase.
-    let _ = engine::ScheduleTemplate::from(template);
+    let engine_template = engine::ScheduleTemplate::from(template);
     let _ = inventory.map(engine::ResourceInventory::from);
-    Err(napi::Error::from_reason(
-        "Engine not implemented yet. Phase 2 will add the solver.",
-    ))
+
+    // Validate first
+    let validation = skejj_engine::validator::validate(&engine_template);
+    if !validation.is_ok() {
+        return Err(napi::Error::from_reason(validation.errors.join("; ")));
+    }
+
+    // Solve (CPM only in 02-01; resource allocation added in 02-02)
+    skejj_engine::solver::solve(&engine_template)
+        .map(|solved| solved.into())
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Validate a schedule template and return errors and warnings without solving.
+#[napi]
+pub fn validate(template: ScheduleTemplate) -> ValidationResult {
+    let engine_template = engine::ScheduleTemplate::from(template);
+    skejj_engine::validator::validate(&engine_template).into()
 }

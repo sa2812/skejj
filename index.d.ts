@@ -58,7 +58,11 @@ export interface ScheduleTemplate {
   defaultNumPeople?: number
 }
 
-/** Stub for the schedule solver. Phase 2 will implement the actual engine. */
+/**
+ * Solve a schedule template using CPM (Critical Path Method).
+ * Validates the template first; returns an error if validation fails.
+ * Resource allocation is not yet applied (added in 02-02).
+ */
 export declare function solve(template: ScheduleTemplate, inventory?: ResourceInventory | undefined | null): SolvedSchedule
 
 export interface SolvedSchedule {
@@ -75,6 +79,10 @@ export interface SolvedStep {
   startTime?: string
   endTime?: string
   assignedResources: Array<AssignedResource>
+  /** Total float (slack) in minutes. Zero means this step is on the critical path. */
+  totalFloatMins: number
+  /** True when total_float_mins == 0. */
+  isCritical: boolean
 }
 
 export interface Step {
@@ -106,4 +114,12 @@ export declare const enum TimingPolicy {
 export interface Track {
   id: string
   name: string
+}
+
+/** Validate a schedule template and return errors and warnings without solving. */
+export declare function validate(template: ScheduleTemplate): ValidationResult
+
+export interface ValidationResult {
+  errors: Array<string>
+  warnings: Array<string>
 }

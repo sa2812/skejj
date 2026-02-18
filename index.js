@@ -580,3 +580,4 @@ module.exports.DependencyType = nativeBinding.DependencyType
 module.exports.ResourceKind = nativeBinding.ResourceKind
 module.exports.solve = nativeBinding.solve
 module.exports.TimingPolicy = nativeBinding.TimingPolicy
+module.exports.validate = nativeBinding.validate
