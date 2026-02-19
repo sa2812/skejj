@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use petgraph::algo::is_cyclic_directed;
 use petgraph::graph::DiGraph;
+use serde::Serialize;
 
 use crate::model::ScheduleTemplate;
 
@@ -9,7 +10,7 @@ use crate::model::ScheduleTemplate;
 // Validation result types
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ValidationResult {
     pub errors: Vec<String>,
     pub warnings: Vec<String>,

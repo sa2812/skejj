@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::model::{AssignedResource, ResourceKind, ScheduleTemplate, SolvedStep, TimingPolicy};
+use crate::model::{
+    AssignedResource, ResourceInventory, ResourceKind, ScheduleTemplate, SolvedStep, TimingPolicy,
+};
 
 // ---------------------------------------------------------------------------
 // Timeline tracker for Equipment and People resources
@@ -48,12 +50,16 @@ impl ResourceTimeline {
 /// 2. Then by early start ascending
 /// 3. Tie-break by duration descending
 ///
+/// When `inventory` is provided, its quantities override the template capacity
+/// for matching resources. A warning is emitted for each override.
+///
 /// Returns a list of human-readable warnings for any constraint relaxations.
 pub fn allocate_resources(
     template: &ScheduleTemplate,
     solved_steps: &mut Vec<SolvedStep>,
     early_starts: &HashMap<String, u32>,
     late_starts: &HashMap<String, u32>,
+    inventory: Option<&ResourceInventory>,
 ) -> Vec<String> {
     let mut warnings: Vec<String> = Vec::new();
 
@@ -83,11 +89,35 @@ pub fn allocate_resources(
         .collect();
 
     // Build resource capacity map: resource_id -> capacity
-    let resource_capacity: HashMap<&str, u32> = template
+    // Start from template capacities, then apply inventory overrides.
+    let mut resource_capacity: HashMap<&str, u32> = template
         .resources
         .iter()
         .map(|r| (r.id.as_str(), r.capacity))
         .collect();
+
+    // Apply inventory overrides and emit warnings
+    if let Some(inv) = inventory {
+        for item in &inv.items {
+            if let Some(template_cap) = resource_capacity.get_mut(item.resource_id.as_str()) {
+                let inv_qty = item.available_quantity;
+                let tmpl_cap = *template_cap;
+                // Find the resource name for the warning message
+                let rname = template
+                    .resources
+                    .iter()
+                    .find(|r| r.id == item.resource_id)
+                    .map(|r| r.name.as_str())
+                    .unwrap_or(item.resource_id.as_str());
+                warnings.push(format!(
+                    "Inventory override: '{}' limited to {} (template defines {})",
+                    rname, inv_qty, tmpl_cap
+                ));
+                *template_cap = inv_qty;
+            }
+            // If the resource_id from inventory doesn't match any template resource, ignore it
+        }
+    }
 
     // Build resource name map: resource_id -> name
     let resource_names: HashMap<&str, &str> = template

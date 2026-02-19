@@ -43,6 +43,7 @@ pub enum ResourceKind {
 
 /// A directed dependency from one step to another.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StepDependency {
     /// The ID of the predecessor step.
     pub step_id: String,
@@ -51,6 +52,7 @@ pub struct StepDependency {
 
 /// What a single step requires from a resource.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceNeed {
     /// References a `Resource` by its ID.
     pub resource_id: String,
@@ -69,6 +71,7 @@ pub struct ResourceNeed {
 
 /// A single work unit in a schedule template.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Step {
     pub id: String,
     pub title: String,
@@ -87,6 +90,7 @@ pub struct Step {
 
 /// Organizational grouping of steps (e.g. "Kitchen", "Prep Station").
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Track {
     pub id: String,
     pub name: String,
@@ -94,6 +98,7 @@ pub struct Track {
 
 /// A resource defined by a schedule template.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Resource {
     pub id: String,
     pub name: String,
@@ -110,6 +115,7 @@ pub struct Resource {
 
 /// Schedule-level time constraint that drives forward or backward scheduling.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TimeConstraint {
     /// ISO 8601 datetime string: drives forward scheduling from this point.
     pub start_time: Option<String>,
@@ -119,6 +125,7 @@ pub struct TimeConstraint {
 
 /// The user-defined schedule template. Contains no concrete wall-clock times.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScheduleTemplate {
     pub id: String,
     pub name: String,
@@ -138,6 +145,7 @@ pub struct ScheduleTemplate {
 /// Declares how many of a particular resource the user actually has available
 /// at solve time. This may differ from the template's theoretical `capacity`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceInventoryItem {
     /// References a `Resource` by its ID.
     pub resource_id: String,
@@ -146,6 +154,7 @@ pub struct ResourceInventoryItem {
 
 /// The complete set of real-world resource availability provided at solve time.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceInventory {
     pub items: Vec<ResourceInventoryItem>,
 }
@@ -156,6 +165,7 @@ pub struct ResourceInventory {
 
 /// Records which resource was assigned to a solved step, and how much.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssignedResource {
     pub resource_id: String,
     pub quantity_used: u32,
@@ -163,6 +173,7 @@ pub struct AssignedResource {
 
 /// A step in a solved schedule with concrete timing information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SolvedStep {
     /// References a `Step` from the template.
     pub step_id: String,
@@ -183,6 +194,7 @@ pub struct SolvedStep {
 
 /// Schedule-level metadata produced alongside the solved steps.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScheduleSummary {
     pub total_duration_mins: u32,
     pub critical_path_step_ids: Vec<String>,
@@ -191,6 +203,7 @@ pub struct ScheduleSummary {
 /// The complete solver output: every step has concrete timing plus summary
 /// metadata and any warnings generated during solving.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SolvedSchedule {
     /// References the originating `ScheduleTemplate` by ID.
     pub template_id: String,
