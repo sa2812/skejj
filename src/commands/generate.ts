@@ -58,6 +58,11 @@ export const generateCommand = new Command('generate')
     '-f, --format <type>',
     'Export format in addition to ASCII Gantt: gantt (Mermaid), csv, json',
   )
+  .addHelpText('after', `
+Examples:
+  $ skejj generate "plan a birthday party for 10 kids"
+  $ skejj generate "weekend trip to Paris" -o paris.json
+  $ skejj generate "home renovation" --format gantt`)
   .action(
     async (
       description: string,

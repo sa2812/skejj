@@ -15,6 +15,12 @@ export const makeCommand = new Command('make')
   .option('-q, --quiet', 'Suppress summary stats, show only the schedule')
   .option('-f, --format <type>', 'Export format: gantt, csv, json (writes a file in addition to ASCII terminal output)')
   .option('--width <cols>', 'Chart width in columns (default: terminal width or 80)', parseInt)
+  .addHelpText('after', `
+Examples:
+  $ skejj make examples/roast-chicken.json
+  $ skejj make schedule.yaml --width 120
+  $ skejj make myplan.json --format csv
+  $ skejj make myplan.json -q -o schedule.txt`)
   .action((file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {

@@ -6,6 +6,10 @@ export const checkCommand = new Command('check')
   .description('Validate a schedule file without solving')
   .argument('<file>', 'Path to schedule JSON file')
   .option('-q, --quiet', 'Show only errors, suppress warnings')
+  .addHelpText('after', `
+Examples:
+  $ skejj check examples/roast-chicken.json
+  $ skejj check myplan.yaml -q`)
   .action((file: string, options: { quiet?: boolean }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {
