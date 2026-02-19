@@ -173,8 +173,10 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         {statusMsg && <Text color="green">{statusMsg}</Text>}
         <Text> </Text>
         <Text bold>What would you like to adjust?</Text>
+        <Text dimColor>Use arrow keys to navigate</Text>
         <Select
           options={menuOptions}
+          visibleOptionCount={menuOptions.length}
           onChange={(val) => {
             dispatch({ type: 'ERROR', msg: null });
             dispatch({ type: 'CLEAR_STATUS' });
@@ -233,6 +235,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         {inputError && <Text color="red">{inputError}</Text>}
         <Select
           options={fieldOptions}
+          visibleOptionCount={fieldOptions.length}
           onChange={(val) => {
             dispatch({ type: 'ERROR', msg: null });
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); return; }
@@ -320,6 +323,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: 'Alap — schedule as late as possible', value: 'Alap' },
             { label: '< Back', value: 'back' },
           ]}
+          visibleOptionCount={3}
           onChange={(val) => {
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } }); return; }
             const policy = val as 'Asap' | 'Alap';
@@ -363,10 +367,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Edit "{step.title}" — dependencies:</Text>
-        <Text dimColor>Toggle dependencies with Space, confirm with Enter</Text>
+        <Text dimColor>Use arrow keys to navigate, Space to toggle, Enter to confirm</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <MultiSelect
           options={depOptions}
+          visibleOptionCount={depOptions.length}
           defaultValue={currentDepIds}
           onSubmit={(selectedIds) => {
             dispatch({ type: 'ERROR', msg: null });
@@ -429,6 +434,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         {inputError && <Text color="red">{inputError}</Text>}
         <MultiSelect
           options={resourceOptions}
+          visibleOptionCount={resourceOptions.length}
           defaultValue={currentResourceIds}
           onSubmit={(selectedIds) => {
             dispatch({ type: 'ERROR', msg: null });
@@ -566,6 +572,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>Edit "{step.title}" — trackId (current: {step.trackId ?? 'none'}):</Text>
         <Select
           options={trackOptions}
+          visibleOptionCount={trackOptions.length}
           onChange={(val) => {
             const updated: ScheduleInput = {
               ...schedule,
@@ -656,12 +663,14 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
       label: `${s.title} (${s.durationMins}m)`,
       value: String(i),
     }));
+    const removeStepOptions = [...stepOptions, { label: '< Back', value: 'back' }];
 
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Remove which step?</Text>
         <Select
-          options={[...stepOptions, { label: '< Back', value: 'back' }]}
+          options={removeStepOptions}
+          visibleOptionCount={removeStepOptions.length}
           onChange={(val) => {
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); return; }
             const idx = parseInt(val, 10);
@@ -708,6 +717,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         {statusMsg && <Text color="green">{statusMsg}</Text>}
         <Select
           options={menuOptions}
+          visibleOptionCount={menuOptions.length}
           onChange={(val) => {
             dispatch({ type: 'CLEAR_STATUS' });
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); }
@@ -757,6 +767,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: 'People (staff, helpers)', value: 'People' },
             { label: 'Consumable (ingredients, materials)', value: 'Consumable' },
           ]}
+          visibleOptionCount={3}
           onChange={(val: string) => {
             dispatch({
               type: 'NAV',
@@ -816,12 +827,14 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
       label: `${r.name} (${r.kind}, cap: ${r.capacity})`,
       value: String(i),
     }));
+    const editResourceOptions = [...resourceOptions, { label: '< Back', value: 'back' }];
 
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Edit which resource?</Text>
         <Select
-          options={[...resourceOptions, { label: '< Back', value: 'back' }]}
+          options={editResourceOptions}
+          visibleOptionCount={editResourceOptions.length}
           onChange={(val) => {
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } }); return; }
             dispatch({ type: 'NAV', screen: { kind: 'edit-resource-field-select', resourceIndex: parseInt(val, 10) } });
@@ -851,6 +864,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: `capacity: ${resource.capacity}`, value: 'capacity' },
             { label: '< Back', value: 'back' },
           ]}
+          visibleOptionCount={4}
           onChange={(val) => {
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-select' } }); return; }
             if (val === 'name') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-name', resourceIndex } }); }
@@ -904,6 +918,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: 'Consumable (ingredients, materials)', value: 'Consumable' },
             { label: '< Back', value: 'back' },
           ]}
+          visibleOptionCount={4}
           onChange={(val) => {
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-field-select', resourceIndex } }); return; }
             const updated: ScheduleInput = {
@@ -956,13 +971,15 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
       label: `${r.name} (${r.kind}, cap: ${r.capacity})`,
       value: String(i),
     }));
+    const removeResourceOptions = [...resourceOptions, { label: '< Back', value: 'back' }];
 
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Remove which resource?</Text>
         <Text color="yellow">Warning: this will also remove all resourceNeeds referencing it.</Text>
         <Select
-          options={[...resourceOptions, { label: '< Back', value: 'back' }]}
+          options={removeResourceOptions}
+          visibleOptionCount={removeResourceOptions.length}
           onChange={(val) => {
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } }); return; }
             const idx = parseInt(val, 10);
@@ -1006,6 +1023,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: 'Clear constraint (use relative offsets)', value: 'clear' },
             { label: '< Back', value: 'back' },
           ]}
+          visibleOptionCount={4}
           onChange={(val) => {
             if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); return; }
             if (val === 'clear') {
@@ -1069,6 +1087,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: 'Save to new file', value: 'new-file' },
             { label: 'Discard changes', value: 'discard' },
           ]}
+          visibleOptionCount={3}
           onChange={(val) => {
             if (val === 'discard') {
               exit();
