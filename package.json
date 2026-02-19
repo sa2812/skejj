@@ -3,14 +3,10 @@
   "version": "0.1.0",
   "description": "Schedule engine - Rust core with Node.js bindings",
   "type": "module",
-  "main": "index.js",
-  "types": "index.d.ts",
   "bin": {
     "skejj": "./src/index.ts"
   },
   "scripts": {
-    "build": "napi build --platform --release --package skejj-node --output-dir .",
-    "build:debug": "napi build --platform --package skejj-node --output-dir .",
     "start": "tsx src/index.ts",
     "schema:gen": "tsx scripts/generate-schema.ts"
   },
@@ -26,7 +22,6 @@
     "zod": "^3.0.0"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^3.5.1",
     "@types/node": "^25.2.3",
     "@types/react": "^19.1.0",
     "tsx": "^4.0.0",

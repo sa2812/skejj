@@ -7,8 +7,8 @@ use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 
 use crate::model::{
-    AssignedResource, DependencyType, ScheduleSummary, ScheduleTemplate, SolvedSchedule,
-    SolvedStep, TimingPolicy,
+    AssignedResource, DependencyType, ResourceInventory, ScheduleSummary, ScheduleTemplate,
+    SolvedSchedule, SolvedStep, TimingPolicy,
 };
 
 // ---------------------------------------------------------------------------
@@ -28,12 +28,11 @@ pub enum SolveError {
 }
 
 // ---------------------------------------------------------------------------
-// Internal CPM result (pub(crate) so allocator.rs can access it in 02-02)
+// Internal CPM result
 // ---------------------------------------------------------------------------
 
 /// Internal CPM result used to pass intermediate data to the allocator.
 /// Kept as a pub(crate) struct so allocator.rs can access it.
-#[allow(dead_code)]
 pub(crate) struct CpmResult {
     pub solved_steps: Vec<SolvedStep>,
     /// Early start time (minutes) keyed by step_id — used by resource allocator.
@@ -96,7 +95,7 @@ fn format_datetime(dt: NaiveDateTime) -> String {
 
 /// Run the Critical Path Method on the given schedule template.
 /// Returns a `CpmResult` containing intermediate CPM data that can be used
-/// by the resource allocator (02-02).
+/// by the resource allocator.
 pub(crate) fn cpm(template: &ScheduleTemplate) -> Result<CpmResult, SolveError> {
     // -----------------------------------------------------------------------
     // 1. Build a mapping from step_id → array index and validate durations
@@ -385,10 +384,13 @@ pub(crate) fn cpm(template: &ScheduleTemplate) -> Result<CpmResult, SolveError> 
 /// 2. If the template defines resources, runs the greedy resource allocator to
 ///    stagger conflicting steps within their float windows.
 /// 3. Recalculates total duration after allocation (steps may be pushed out).
-pub fn solve(template: &ScheduleTemplate) -> Result<SolvedSchedule, SolveError> {
+pub fn solve(
+    template: &ScheduleTemplate,
+    inventory: Option<&ResourceInventory>,
+) -> Result<SolvedSchedule, SolveError> {
     let mut result = cpm(template)?;
 
-    // Resource allocation (greedy with float-window shifting, added in 02-02)
+    // Resource allocation (greedy with float-window shifting)
     let mut alloc_warnings: Vec<String> = Vec::new();
     if !template.resources.is_empty() {
         alloc_warnings = crate::allocator::allocate_resources(
@@ -396,6 +398,7 @@ pub fn solve(template: &ScheduleTemplate) -> Result<SolvedSchedule, SolveError> 
             &mut result.solved_steps,
             &result.early_starts,
             &result.late_starts,
+            inventory,
         );
     }
 
@@ -471,7 +474,7 @@ mod tests {
     #[test]
     fn test_single_step() {
         let template = make_template(vec![make_step("a", 30, vec![])]);
-        let result = solve(&template).unwrap();
+        let result = solve(&template, None).unwrap();
         assert_eq!(result.solved_steps.len(), 1);
         let s = &result.solved_steps[0];
         assert_eq!(s.step_id, "a");
@@ -488,7 +491,7 @@ mod tests {
             make_step("a", 30, vec![]),
             make_step("b", 20, vec![("a", DependencyType::FinishToStart)]),
         ]);
-        let result = solve(&template).unwrap();
+        let result = solve(&template, None).unwrap();
         assert_eq!(result.summary.total_duration_mins, 50);
 
         let a = result.solved_steps.iter().find(|s| s.step_id == "a").unwrap();
@@ -521,7 +524,7 @@ mod tests {
                 ],
             ),
         ]);
-        let result = solve(&template).unwrap();
+        let result = solve(&template, None).unwrap();
         assert_eq!(result.summary.total_duration_mins, 35);
 
         let a = result.solved_steps.iter().find(|s| s.step_id == "a").unwrap();
@@ -539,7 +542,7 @@ mod tests {
     #[test]
     fn test_missing_duration_error() {
         let template = make_template(vec![make_step("a", 0, vec![])]);
-        let err = solve(&template).unwrap_err();
+        let err = solve(&template, None).unwrap_err();
         assert!(matches!(err, SolveError::MissingDuration(_)));
     }
 
@@ -550,7 +553,7 @@ mod tests {
             10,
             vec![("nonexistent", DependencyType::FinishToStart)],
         )]);
-        let err = solve(&template).unwrap_err();
+        let err = solve(&template, None).unwrap_err();
         assert!(matches!(err, SolveError::UnknownDependency(_, _)));
     }
 }

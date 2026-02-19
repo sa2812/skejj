@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/engine", "crates/node-bindings"]
+members = ["crates/engine"]
 resolver = "2"
 
 [profile.release]
