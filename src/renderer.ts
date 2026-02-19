@@ -4,6 +4,13 @@ import type { ScheduleInput } from './schema.js';
 export interface RenderOptions {
   quiet: boolean;
   termWidth: number;
+  colorLevel: 0 | 1 | 2 | 3;
+}
+
+export function detectColorLevel(): 0 | 1 | 2 | 3 {
+  if (process.env.NO_COLOR) return 0;
+  if (!process.stdout.isTTY) return 0;
+  return 3;
 }
 
 function formatDuration(mins: number): string {

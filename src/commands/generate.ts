@@ -13,7 +13,7 @@ import { Command } from 'commander';
 import { loadAiConfig } from '../ai/config.js';
 import { buildModel } from '../ai/provider.js';
 import { generateScheduleFromText } from '../ai/generate.js';
-import { renderGantt } from '../renderer.js';
+import { renderGantt, detectColorLevel } from '../renderer.js';
 import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
 import { solve } from '../engine.js';
 
@@ -138,9 +138,11 @@ export const generateCommand = new Command('generate')
       }
 
       // 9. Display ASCII Gantt (always to stdout)
+      const colorLevel = detectColorLevel();
       const gantt = renderGantt(solvedResult, scheduleInput, {
         quiet: false,
         termWidth: process.stdout.columns ?? 80,
+        colorLevel,
       });
       console.log(gantt);
 

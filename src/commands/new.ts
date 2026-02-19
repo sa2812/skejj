@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
 import React from 'react';
-import { renderGantt } from '../renderer.js';
+import { renderGantt, detectColorLevel } from '../renderer.js';
 import type { ScheduleInput } from '../schema.js';
 import type { WizardAppProps } from '../ui/WizardApp.js';
 import { solve } from '../engine.js';
@@ -48,9 +48,11 @@ export const newCommand = new Command('new')
       const solvedResult = solve(schedule);
 
       // 3. Display the Gantt chart inline
+      const colorLevel = detectColorLevel();
       const gantt = renderGantt(solvedResult, schedule, {
         quiet: false,
         termWidth: process.stdout.columns ?? 80,
+        colorLevel,
       });
       console.log(gantt);
 

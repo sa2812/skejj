@@ -4,7 +4,7 @@ import { TextInput, Select, MultiSelect } from '@inkjs/ui';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ScheduleInput } from '../schema.js';
-import { renderGantt } from '../renderer.js';
+import { renderGantt, detectColorLevel } from '../renderer.js';
 import { solve } from '../engine.js';
 import type { SolvedScheduleResult } from '../engine.js';
 
@@ -97,9 +97,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
 
   // ---- gantt display -------------------------------------------------------
 
+  const colorLevel = detectColorLevel();
   const ganttString = renderGantt(solved, schedule, {
     quiet: true,
     termWidth: process.stdout.columns ?? 80,
+    colorLevel,
   });
 
   // ---- screen rendering ----------------------------------------------------

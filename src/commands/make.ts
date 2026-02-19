@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
 import { loadSchedule } from '../loader.js';
-import { renderGantt } from '../renderer.js';
+import { renderGantt, detectColorLevel } from '../renderer.js';
 import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
 import { solve } from '../engine.js';
 
@@ -14,7 +14,8 @@ export const makeCommand = new Command('make')
   .option('-o, --output <file>', 'Write output to file instead of stdout (or override export destination when --format is used)')
   .option('-q, --quiet', 'Suppress summary stats, show only the schedule')
   .option('-f, --format <type>', 'Export format: gantt, csv, json (writes a file in addition to ASCII terminal output)')
-  .action((file: string, options: { output?: string; quiet?: boolean; format?: string }) => {
+  .option('--width <cols>', 'Chart width in columns (default: terminal width or 80)', parseInt)
+  .action((file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {
       console.error('Validation errors:');
@@ -26,9 +27,12 @@ export const makeCommand = new Command('make')
       const result = solve(loaded.data);
 
       // ASCII Gantt always prints to terminal (stdout), regardless of --format
+      const termWidth = options.width ?? (process.stdout.columns ?? 80);
+      const colorLevel = detectColorLevel();
       const asciiOutput = renderGantt(result, loaded.data, {
         quiet: options.quiet ?? false,
-        termWidth: process.stdout.columns ?? 80,
+        termWidth,
+        colorLevel,
       });
 
       if (options.format) {
