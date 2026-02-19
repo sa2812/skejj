@@ -1,14 +1,26 @@
 {
   "name": "skejj",
   "version": "0.1.0",
-  "description": "Schedule engine - Rust core with Node.js bindings",
+  "description": "Constraint-based schedule solver — Rust core, Node.js CLI",
   "type": "module",
   "bin": {
-    "skejj": "./src/index.ts"
+    "skejj": "./dist/index.js"
   },
   "scripts": {
+    "build": "node scripts/build.js",
+    "build:rust": "cargo build --release --manifest-path crates/engine/Cargo.toml",
+    "build:all": "npm run build:rust && npm run build",
+    "prepublishOnly": "npm run build",
     "start": "tsx src/index.ts",
     "schema:gen": "tsx scripts/generate-schema.ts"
+  },
+  "files": [
+    "dist/",
+    "package.json",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.45",
@@ -20,13 +32,6 @@
     "ink": "^6.7.0",
     "react": "^19.1.0",
     "zod": "^3.0.0"
-  },
-  "optionalDependencies": {
-    "@skejj/engine-darwin-arm64": "0.1.0",
-    "@skejj/engine-darwin-x64": "0.1.0",
-    "@skejj/engine-linux-x64": "0.1.0",
-    "@skejj/engine-linux-arm64": "0.1.0",
-    "@skejj/engine-win32-x64": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
