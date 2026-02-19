@@ -2,31 +2,14 @@
   "id": "roast-chicken-dinner",
   "name": "Roast Chicken Dinner",
   "description": "A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.",
-  "timeConstraint": {
-    "endTime": "2026-03-01T19:00:00"
-  },
-  "tracks": [
-    { "id": "mains", "name": "Mains" },
-    { "id": "sides", "name": "Sides" },
-    { "id": "setup", "name": "Setup" }
-  ],
-  "resources": [
-    {
-      "id": "oven",
-      "name": "Oven",
-      "kind": "Equipment",
-      "capacity": 1,
-      "roles": []
-    }
-  ],
   "steps": [
     {
       "id": "prep-chicken",
       "title": "Prep chicken",
       "description": "Season and truss the chicken",
       "durationMins": 15,
-      "trackId": "mains",
       "dependencies": [],
+      "trackId": "mains",
       "resourceNeeds": []
     },
     {
@@ -34,12 +17,22 @@
       "title": "Roast chicken",
       "description": "Roast chicken in oven at 200°C",
       "durationMins": 90,
-      "trackId": "mains",
       "dependencies": [
-        { "stepId": "prep-chicken", "dependencyType": "FinishToStart" }
+        {
+          "stepId": "prep-chicken",
+          "dependencyType": "FinishToStart"
+        },
+        {
+          "stepId": "preheat-oven",
+          "dependencyType": "FinishToStart"
+        }
       ],
+      "trackId": "mains",
       "resourceNeeds": [
-        { "resourceId": "oven", "quantity": 1 }
+        {
+          "resourceId": "oven",
+          "quantity": 1
+        }
       ]
     },
     {
@@ -47,22 +40,32 @@
       "title": "Prep potatoes",
       "description": "Peel, parboil and rough up potatoes",
       "durationMins": 20,
-      "trackId": "sides",
       "dependencies": [],
+      "trackId": "sides",
       "resourceNeeds": []
     },
     {
       "id": "roast-potatoes",
       "title": "Roast potatoes",
       "description": "Roast potatoes in oven at 220°C until golden",
-      "durationMins": 45,
-      "trackId": "sides",
+      "durationMins": 40,
       "dependencies": [
-        { "stepId": "prep-potatoes", "dependencyType": "FinishToStart" },
-        { "stepId": "roast-chicken", "dependencyType": "FinishToStart" }
+        {
+          "stepId": "prep-potatoes",
+          "dependencyType": "FinishToStart"
+        },
+        {
+          "stepId": "preheat-oven",
+          "dependencyType": "FinishToStart"
+        }
       ],
+      "trackId": "sides",
+      "timingPolicy": "Alap",
       "resourceNeeds": [
-        { "resourceId": "oven", "quantity": 1 }
+        {
+          "resourceId": "oven",
+          "quantity": 1
+        }
       ]
     },
     {
@@ -70,10 +73,13 @@
       "title": "Make gravy",
       "description": "Deglaze the roasting tin with stock and thicken",
       "durationMins": 10,
-      "trackId": "mains",
       "dependencies": [
-        { "stepId": "roast-chicken", "dependencyType": "FinishToStart" }
+        {
+          "stepId": "roast-chicken",
+          "dependencyType": "FinishToStart"
+        }
       ],
+      "trackId": "mains",
       "resourceNeeds": []
     },
     {
@@ -81,8 +87,8 @@
       "title": "Steam vegetables",
       "description": "Steam broccoli and carrots until tender",
       "durationMins": 15,
-      "trackId": "sides",
       "dependencies": [],
+      "trackId": "sides",
       "resourceNeeds": []
     },
     {
@@ -90,8 +96,8 @@
       "title": "Set table",
       "description": "Lay out plates, cutlery, and glasses",
       "durationMins": 10,
-      "trackId": "setup",
       "dependencies": [],
+      "trackId": "setup",
       "resourceNeeds": []
     },
     {
@@ -99,15 +105,69 @@
       "title": "Plate up",
       "description": "Carve the chicken and plate all dishes",
       "durationMins": 5,
-      "trackId": "mains",
       "dependencies": [
-        { "stepId": "roast-chicken", "dependencyType": "FinishToStart" },
-        { "stepId": "roast-potatoes", "dependencyType": "FinishToStart" },
-        { "stepId": "make-gravy", "dependencyType": "FinishToStart" },
-        { "stepId": "steam-veg", "dependencyType": "FinishToStart" },
-        { "stepId": "set-table", "dependencyType": "FinishToStart" }
+        {
+          "stepId": "roast-chicken",
+          "dependencyType": "FinishToStart"
+        },
+        {
+          "stepId": "roast-potatoes",
+          "dependencyType": "FinishToStart"
+        },
+        {
+          "stepId": "make-gravy",
+          "dependencyType": "FinishToStart"
+        },
+        {
+          "stepId": "steam-veg",
+          "dependencyType": "FinishToStart"
+        },
+        {
+          "stepId": "set-table",
+          "dependencyType": "FinishToStart"
+        }
       ],
+      "trackId": "mains",
       "resourceNeeds": []
+    },
+    {
+      "id": "preheat-oven",
+      "title": "Preheat Oven",
+      "durationMins": 5,
+      "dependencies": [],
+      "timingPolicy": "Alap",
+      "resourceNeeds": [
+        {
+          "resourceId": "oven",
+          "quantity": 2
+        }
+      ]
     }
-  ]
+  ],
+  "tracks": [
+    {
+      "id": "mains",
+      "name": "Mains"
+    },
+    {
+      "id": "sides",
+      "name": "Sides"
+    },
+    {
+      "id": "setup",
+      "name": "Setup"
+    }
+  ],
+  "resources": [
+    {
+      "id": "oven",
+      "name": "Oven",
+      "kind": "Equipment",
+      "capacity": 2,
+      "roles": []
+    }
+  ],
+  "timeConstraint": {
+    "endTime": "2026-03-01T19:00:00"
+  }
 }
