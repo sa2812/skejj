@@ -1,0 +1,95 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderer golden fixtures > birthday-party.json at 80 cols 1`] = `
+"                   10:00   10:30   11:00   11:30   12:00   12:30   13:00   13:3013:40
+Buy supplies       [##############]
+Bake cake          [##############]
+Decorate venue                     [##########]
+Ice cake                           [###]
+Welcome guests                                 [#]
+Blow up balloons                                  [######]
+Party games                                       [##############]
+Set up games                                              [###]
+Serve cake                                                        [##]
+Clean up                                                              [######]
+
+--- Warnings ---
+  - Step 'Blow up balloons' was delayed beyond its available slack due to resource conflict with 'Helpers'
+  - Step 'Set up games' was delayed beyond its available slack due to resource conflict with 'Helpers'"
+`;
+
+exports[`renderer golden fixtures > london-sightseeing.json at 80 cols 1`] = `
+"                        09:0010:0011:0012:0013:0014:0015:0016:0017:0018:0019:0020:0021:00
+Tower of London         [#######]
+Borough Market lunch             [###]
+Thames Southbank walk                 [#]
+Tate Modern                              [#####]
+Day 1 dinner                                    [##]
+British Museum                                      [#########]
+Covent Garden lunch                                            [##]
+Westminster walk                                                   [##]
+London Eye                                                             [#]
+Day 2 dinner                                                              [##]"
+`;
+
+exports[`renderer golden fixtures > roast-chicken.json at 80 cols 1`] = `
+"                   16:25      16:55       17:25      17:55       18:25      18:5519:00
+Prep chicken       [####]
+Prep potatoes      [######]
+Steam vegetables   [####]
+Set table          [##]
+Roast chicken            [################################]
+Roast potatoes                                             [###############]
+Make gravy                                                 [##]
+Plate up                                                                    [#]"
+`;
+
+exports[`renderer golden fixtures > roast-chicken.json at 120 cols 1`] = `
+"                   16:25              16:55              17:25              17:55               18:25              18:5519:00
+Prep chicken       [########]
+Prep potatoes      [###########]
+Steam vegetables   [########]
+Set table          [####]
+Roast chicken                [#######################################################]
+Roast potatoes                                                                        [###########################]
+Make gravy                                                                            [####]
+Plate up                                                                                                           [#]"
+`;
+
+exports[`renderer golden fixtures > roast-chicken.json with quiet: false 1`] = `
+"                   16:25      16:55       17:25      17:55       18:25      18:5519:00
+Prep chicken       [####]
+Prep potatoes      [######]
+Steam vegetables   [####]
+Set table          [##]
+Roast chicken            [################################]
+Roast potatoes                                             [###############]
+Make gravy                                                 [##]
+Plate up                                                                    [#]
+
+--- Summary ---
+Total time: 2h 35m
+Steps: 8
+Critical path: 2h 35m (4 steps)
+Resources used: Oven
+
+--- Critical Path ---
+Prep chicken -> Roast chicken -> Roast potatoes -> Plate up
+
+Float per step:
+  Prep chicken: 16:25 -> 16:40  [0m (critical)]
+  Prep potatoes: 16:25 -> 16:45  [85m slack]
+  Steam vegetables: 16:25 -> 16:40  [135m slack]
+  Set table: 16:25 -> 16:35  [140m slack]
+  Roast chicken: 16:40 -> 18:10  [0m (critical)]
+  Roast potatoes: 18:10 -> 18:55  [0m (critical)]
+  Make gravy: 18:10 -> 18:20  [35m slack]
+  Plate up: 18:55 -> 19:00  [0m (critical)]"
+`;
+
+exports[`renderer golden fixtures > simple.json at 80 cols 1`] = `
+"             10:00                     10:30                     11:00        11:15
+Step A       [########################]
+Step B                                 [#####################################]
+Step C                                 [###############]"
+`;
