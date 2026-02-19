@@ -224,6 +224,10 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text>{ganttString}</Text>
+        {solveError && (
+          <Text color="red">Solve error (showing last valid result): {solveError}</Text>
+        )}
         <Text bold color="cyan">Editing step: {step.title}</Text>
         <Text dimColor>Choose a field to edit, or go back</Text>
         {inputError && <Text color="red">{inputError}</Text>}
@@ -696,6 +700,10 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text>{ganttString}</Text>
+        {solveError && (
+          <Text color="red">Solve error (showing last valid result): {solveError}</Text>
+        )}
         <Text bold>Resources: {resourceSummary}</Text>
         {statusMsg && <Text color="green">{statusMsg}</Text>}
         <Select
@@ -831,6 +839,10 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text>{ganttString}</Text>
+        {solveError && (
+          <Text color="red">Solve error (showing last valid result): {solveError}</Text>
+        )}
         <Text bold color="cyan">Editing resource: {resource.name}</Text>
         <Select
           options={[
