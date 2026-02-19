@@ -67,6 +67,42 @@ type WizardScreen =
   | { kind: 'filename-overwrite'; filename: string }
   | { kind: 'confirm'; filename: string };
 
+// ---- progress indicator (INTX-03) ------------------------------------------
+
+function getWizardProgress(screen: WizardScreen): string {
+  switch (screen.kind) {
+    case 'schedule-name':
+      return '[1/5] Name';
+    case 'step-list':
+    case 'add-step-title':
+    case 'add-step-duration':
+    case 'add-step-deps':
+    case 'edit-step-select':
+    case 'edit-step-title':
+    case 'edit-step-duration':
+    case 'edit-step-deps':
+    case 'remove-step-select':
+      return '[2/5] Steps';
+    case 'resources-prompt':
+    case 'add-resource-name':
+    case 'add-resource-kind':
+    case 'add-resource-capacity':
+    case 'more-resources':
+    case 'resource-needs-step':
+    case 'resource-needs-qty':
+      return '[3/5] Resources';
+    case 'time-anchor':
+    case 'time-anchor-value':
+      return '[4/5] Time';
+    case 'filename':
+    case 'filename-overwrite':
+    case 'confirm':
+      return '[5/5] Save';
+    default:
+      return '';
+  }
+}
+
 // ---- useReducer state and actions ------------------------------------------
 
 type WizardState = {
@@ -216,8 +252,10 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   if (screen.kind === 'schedule-name') {
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold color="green">skejj new — Create a schedule</Text>
         <Text>Schedule name:</Text>
+        <Text dimColor>Enter a name for your schedule (e.g. Weekend BBQ)</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key="schedule-name"
@@ -229,6 +267,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
             dispatch({ type: 'NAV', screen: { kind: 'step-list' } });
           }}
         />
+        <Text dimColor>Ctrl+C to exit</Text>
       </Box>
     );
   }
@@ -243,6 +282,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>{scheduleName}</Text>
         {steps.length === 0 ? (
           <Text dimColor>No steps yet — add at least one.</Text>
@@ -272,17 +312,24 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   if (screen.kind === 'add-step-title') {
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>New step — title:</Text>
+        <Text dimColor>Give this step a short, descriptive name</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key={screen.kind}
           placeholder="e.g. Preheat Oven"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Title cannot be empty' }); return; }
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to step-list
+              dispatch({ type: 'NAV', screen: { kind: 'step-list' } });
+              return;
+            }
             dispatch({ type: 'NAV', screen: { kind: 'add-step-duration', title: trimmed } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -291,17 +338,26 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const { title } = screen;
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>New step "{title}" — duration (minutes):</Text>
+        <Text dimColor>How long will this step take, in minutes?</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key={screen.kind}
           placeholder="e.g. 30"
           onSubmit={(val) => {
-            const n = parseInt(val.trim(), 10);
+            const trimmed = val.trim();
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to add-step-title
+              dispatch({ type: 'NAV', screen: { kind: 'add-step-title' } });
+              return;
+            }
+            const n = parseInt(trimmed, 10);
             if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer (minutes)' }); return; }
             dispatch({ type: 'NAV', screen: { kind: 'add-step-deps', title, durationMins: n } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -329,6 +385,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     if (depOptions.length === 0) {
       return (
         <Box flexDirection="column" gap={1}>
+          <Text dimColor>{getWizardProgress(screen)}</Text>
           <Text bold>New step "{title}" — no prior steps to depend on.</Text>
           <Text dimColor>Press enter to add step</Text>
           <TextInput
@@ -342,7 +399,9 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>New step "{title}" — dependencies:</Text>
+        <Text dimColor>Select steps that must finish before this one can start</Text>
         <Text dimColor>Space to toggle, Enter to confirm (none = no dependencies)</Text>
         <MultiSelect
           options={depOptions}
@@ -355,6 +414,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   if (screen.kind === 'edit-step-select') {
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Edit which step?</Text>
         <Select
           options={[...stepOptions, { label: '< Back', value: 'back' }]}
@@ -372,6 +432,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const step = steps[index];
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Edit step {index + 1} — title (enter to keep current):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
@@ -391,6 +452,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const step = steps[index];
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Edit step "{title}" — duration (enter to keep {step.durationMins}m):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
@@ -452,6 +514,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     if (depOptions.length === 0) {
       return (
         <Box flexDirection="column" gap={1}>
+          <Text dimColor>{getWizardProgress(screen)}</Text>
           <Text bold>Edit step "{title}" — no other steps to depend on.</Text>
           <Text dimColor>Press enter to save</Text>
           <TextInput
@@ -465,6 +528,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Edit step "{title}" — dependencies:</Text>
         <Text dimColor>Space to toggle, Enter to confirm</Text>
         <MultiSelect
@@ -479,6 +543,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   if (screen.kind === 'remove-step-select') {
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Remove which step?</Text>
         <Select
           options={[...stepOptions, { label: '< Back', value: 'back' }]}
@@ -494,14 +559,23 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   }
 
   if (screen.kind === 'resources-prompt') {
+    // INTX-02: Replace ConfirmInput with Select to support back navigation
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Do you need resources (equipment, people, materials)?</Text>
-        <Text dimColor>y = yes, n = no (or press enter for no)</Text>
-        <ConfirmInput
-          defaultChoice="cancel"
-          onConfirm={() => dispatch({ type: 'NAV', screen: { kind: 'add-resource-name' } })}
-          onCancel={() => dispatch({ type: 'NAV', screen: { kind: 'time-anchor' } })}
+        <Text dimColor>Resources are equipment, people, or materials your steps need</Text>
+        <Select
+          options={[
+            { label: 'Yes, add resources', value: 'yes' },
+            { label: 'No, skip resources', value: 'no' },
+            { label: '< Back to steps', value: 'back' },
+          ]}
+          onChange={(val) => {
+            if (val === 'yes') { dispatch({ type: 'NAV', screen: { kind: 'add-resource-name' } }); return; }
+            if (val === 'no') { dispatch({ type: 'NAV', screen: { kind: 'time-anchor' } }); return; }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'step-list' } }); return; }
+          }}
         />
       </Box>
     );
@@ -510,17 +584,24 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   if (screen.kind === 'add-resource-name') {
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Resource name:</Text>
+        <Text dimColor>Name this resource (e.g. Oven, Kitchen Staff)</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key={screen.kind}
           placeholder="e.g. Oven, Kitchen Staff"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Name cannot be empty' }); return; }
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to resources-prompt
+              dispatch({ type: 'NAV', screen: { kind: 'resources-prompt' } });
+              return;
+            }
             dispatch({ type: 'NAV', screen: { kind: 'add-resource-kind', name: trimmed } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -529,6 +610,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const { name } = screen;
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Resource "{name}" — type:</Text>
         <Select
           options={[
@@ -555,13 +637,21 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const { name, resourceKind: kind } = screen;
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Resource "{name}" — capacity (units available simultaneously):</Text>
+        <Text dimColor>How many of this resource are available at once?</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key={screen.kind}
           placeholder="e.g. 1"
           onSubmit={(val) => {
-            const n = parseInt(val.trim(), 10);
+            const trimmed = val.trim();
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to add-resource-kind
+              dispatch({ type: 'NAV', screen: { kind: 'add-resource-kind', name } });
+              return;
+            }
+            const n = parseInt(trimmed, 10);
             if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
             const existingIds = resources.map((r) => r.id);
             const newId = uniqueId(toKebab(name), existingIds);
@@ -569,6 +659,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
             dispatch({ type: 'NAV', screen: { kind: 'more-resources' } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -577,6 +668,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const lastResource = resources[resources.length - 1];
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text color="green">Added resource: {lastResource?.name}</Text>
         <Text bold>Add another resource?</Text>
         <Text dimColor>y = yes, n = no</Text>
@@ -608,6 +700,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Does "{step.title}" need "{resource.name}"?</Text>
         <Text dimColor>y = yes, n = no</Text>
         <ConfirmInput
@@ -628,6 +721,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const resource = resources[resourceIdx];
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>How many "{resource.name}" does "{step.title}" need?</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
@@ -650,14 +744,26 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   if (screen.kind === 'time-anchor') {
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Scheduling anchor:</Text>
+        <Text dimColor>Choose how to anchor your schedule in time</Text>
         <Select
           options={[
             { label: 'No time constraint (use relative offsets)', value: 'none' },
             { label: 'Start time — schedule starts at a specific time', value: 'start' },
             { label: 'End deadline — must finish by a specific time', value: 'end' },
+            { label: '< Back', value: 'back' },
           ]}
           onChange={(val) => {
+            if (val === 'back') {
+              // Back goes to resources-prompt (or step-list if no resources)
+              if (resources.length > 0) {
+                dispatch({ type: 'NAV', screen: { kind: 'resources-prompt' } });
+              } else {
+                dispatch({ type: 'NAV', screen: { kind: 'step-list' } });
+              }
+              return;
+            }
             if (val === 'none') {
               dispatch({ type: 'SET_TIME_ANCHOR', anchor: null });
               dispatch({ type: 'NAV', screen: { kind: 'filename' } });
@@ -675,6 +781,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const label = anchor === 'start' ? 'Start time' : 'End deadline';
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>{label} (ISO 8601):</Text>
         <Text dimColor>Example: 2026-02-18T17:00:00</Text>
         {inputError && <Text color="red">{inputError}</Text>}
@@ -683,7 +790,11 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
           placeholder="2026-02-18T17:00:00"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Time value cannot be empty' }); return; }
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to time-anchor
+              dispatch({ type: 'NAV', screen: { kind: 'time-anchor' } });
+              return;
+            }
             dispatch({
               type: 'SET_TIME_ANCHOR',
               anchor: anchor === 'start' ? { startTime: trimmed } : { endTime: trimmed },
@@ -691,6 +802,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
             dispatch({ type: 'NAV', screen: { kind: 'filename' } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -699,14 +811,21 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const suggested = (toKebab(scheduleName) || 'schedule') + '.json';
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold>Output filename:</Text>
+        <Text dimColor>Where to save the schedule file</Text>
         <Text dimColor>Default: {suggested}</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key="filename"
           defaultValue={suggested}
           onSubmit={(val) => {
-            const trimmed = val.trim() || suggested;
+            const trimmed = val.trim();
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to time-anchor
+              dispatch({ type: 'NAV', screen: { kind: 'time-anchor' } });
+              return;
+            }
             const fullPath = path.resolve(process.cwd(), trimmed);
             if (fs.existsSync(fullPath)) {
               dispatch({ type: 'NAV', screen: { kind: 'filename-overwrite', filename: trimmed } });
@@ -715,6 +834,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
             }
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -723,6 +843,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
     const { filename } = screen;
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text color="yellow">File "{filename}" already exists. Overwrite?</Text>
         <Text dimColor>y = overwrite, n = choose another name</Text>
         <ConfirmInput
@@ -744,6 +865,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
 
     return (
       <Box flexDirection="column" gap={1}>
+        <Text dimColor>{getWizardProgress(screen)}</Text>
         <Text bold color="green">Ready to create:</Text>
         <Text>  Name:      {scheduleName}</Text>
         <Text>  Steps:     {steps.length}</Text>
@@ -752,6 +874,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text>  File:      {filename}</Text>
         <Text> </Text>
         <Text bold>Create this schedule?</Text>
+        <Text dimColor>Review your schedule before creating it</Text>
         <Text dimColor>y = create and solve, n = go back to edit steps</Text>
         <ConfirmInput
           defaultChoice="confirm"
