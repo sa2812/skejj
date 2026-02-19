@@ -1,0 +1,10 @@
+{
+  "name": "@skejj/engine-win32-x64",
+  "version": "0.1.0",
+  "description": "skejj scheduling engine binary for Windows x64",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "bin": { "skejj-engine": "./bin/skejj-engine.exe" },
+  "files": ["bin/"],
+  "license": "MIT"
+}

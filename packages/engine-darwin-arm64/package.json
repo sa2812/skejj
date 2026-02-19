@@ -1,0 +1,10 @@
+{
+  "name": "@skejj/engine-darwin-arm64",
+  "version": "0.1.0",
+  "description": "skejj scheduling engine binary for macOS ARM64",
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "bin": { "skejj-engine": "./bin/skejj-engine" },
+  "files": ["bin/"],
+  "license": "MIT"
+}
