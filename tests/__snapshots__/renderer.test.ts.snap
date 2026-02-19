@@ -47,72 +47,76 @@ exports[`renderer golden fixtures > roast-chicken.json at 80 cols 1`] = `
 "Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
 
-                   16:25       16:55       17:25      17:55       18:25       18:5519:00
+                   17:00          17:30           18:00          18:30          19:00
 ─ Mains ───────────────────────────────────────────────────────────────────────
-Prep chicken       ██████      │           │          │           │           │ 
-Roast chicken      │     ███████████████████████████████████      │           │ 
-Make gravy         │           │           │          │     ░░░░  │           │ 
-Plate up           │           │           │          │           │           ██
+Prep chicken       ████████       │               │              │              
+Roast chicken      │       █████████████████████████████████████████████        
+Make gravy         │              │               │              │      █████   
+Plate up           │              │               │              │           ███
 ─ Sides ───────────────────────────────────────────────────────────────────────
-Prep potatoes      ░░░░░░░░    │           │          │           │           │ 
-Steam vegetables   ░░░░░░      │           │          │           │           │ 
-Roast potatoes     │           │           │          │     ██████████████████│ 
+Prep potatoes      ░░░░░░░░░░     │               │              │              
+Steam vegetables   ░░░░░░░░       │               │              │              
+Roast potatoes     │              │               │      ░░░░░░░░░░░░░░░░░░░░   
 ─ Setup ───────────────────────────────────────────────────────────────────────
-Set table          ░░░░        │           │          │           │           │ "
+Set table          ░░░░░          │               │              │              
+Preheat Oven       │    ░░░       │               │              │              "
 `;
 
 exports[`renderer golden fixtures > roast-chicken.json at 120 cols 1`] = `
 "Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
 
-                   16:25               16:55              17:25               17:55              18:25               18:5519:00
+                   17:00                    17:30                     18:00                    18:30                    19:00
 ─ Mains ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Prep chicken       ██████████          │                  │                   │                  │                   │  
-Roast chicken      │         ██████████████████████████████████████████████████████████          │                   │  
-Make gravy         │                   │                  │                   │        ░░░░░░░   │                   │  
-Plate up           │                   │                  │                   │                  │                   ███
+Prep chicken       █████████████            │                         │                        │                        
+Roast chicken      │            ███████████████████████████████████████████████████████████████████████████             
+Make gravy         │                        │                         │                        │           █████████    
+Plate up           │                        │                         │                        │                    ████
 ─ Sides ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Prep potatoes      ░░░░░░░░░░░░░       │                  │                   │                  │                   │  
-Steam vegetables   ░░░░░░░░░░          │                  │                   │                  │                   │  
-Roast potatoes     │                   │                  │                   │        ██████████████████████████████│  
+Prep potatoes      ░░░░░░░░░░░░░░░░░        │                         │                        │                        
+Steam vegetables   ░░░░░░░░░░░░░            │                         │                        │                        
+Roast potatoes     │                        │                         │           ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    
 ─ Setup ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Set table          ░░░░░░░             │                  │                   │                  │                   │  "
+Set table          ░░░░░░░░                 │                         │                        │                        
+Preheat Oven       │       ░░░░░            │                         │                        │                        "
 `;
 
 exports[`renderer golden fixtures > roast-chicken.json with quiet: false 1`] = `
 "Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
 
-                   16:25       16:55       17:25      17:55       18:25       18:5519:00
+                   17:00          17:30           18:00          18:30          19:00
 ─ Mains ───────────────────────────────────────────────────────────────────────
-Prep chicken       ██████      │           │          │           │           │ 
-Roast chicken      │     ███████████████████████████████████      │           │ 
-Make gravy         │           │           │          │     ░░░░  │           │ 
-Plate up           │           │           │          │           │           ██
+Prep chicken       ████████       │               │              │              
+Roast chicken      │       █████████████████████████████████████████████        
+Make gravy         │              │               │              │      █████   
+Plate up           │              │               │              │           ███
 ─ Sides ───────────────────────────────────────────────────────────────────────
-Prep potatoes      ░░░░░░░░    │           │          │           │           │ 
-Steam vegetables   ░░░░░░      │           │          │           │           │ 
-Roast potatoes     │           │           │          │     ██████████████████│ 
+Prep potatoes      ░░░░░░░░░░     │               │              │              
+Steam vegetables   ░░░░░░░░       │               │              │              
+Roast potatoes     │              │               │      ░░░░░░░░░░░░░░░░░░░░   
 ─ Setup ───────────────────────────────────────────────────────────────────────
-Set table          ░░░░        │           │          │           │           │ 
+Set table          ░░░░░          │               │              │              
+Preheat Oven       │    ░░░       │               │              │              
 
 --- Summary ---
-Total time: 2h 35m
-Steps: 8
-Critical path: 2h 35m (4 steps)
+Total time: 2h
+Steps: 9
+Critical path: 2h (4 steps)
 Resources used: Oven
 
 --- Critical Path ---
-Prep chicken -> Roast chicken -> Roast potatoes -> Plate up
+Prep chicken -> Roast chicken -> Make gravy -> Plate up
 
 Float per step:
-  Prep chicken: 16:25 -> 16:40  [0m (critical)]
-  Prep potatoes: 16:25 -> 16:45  [85m slack]
-  Steam vegetables: 16:25 -> 16:40  [135m slack]
-  Set table: 16:25 -> 16:35  [140m slack]
-  Roast chicken: 16:40 -> 18:10  [0m (critical)]
-  Roast potatoes: 18:10 -> 18:55  [0m (critical)]
-  Make gravy: 18:10 -> 18:20  [35m slack]
+  Prep chicken: 17:00 -> 17:15  [0m (critical)]
+  Prep potatoes: 17:00 -> 17:20  [55m slack]
+  Steam vegetables: 17:00 -> 17:15  [100m slack]
+  Set table: 17:00 -> 17:10  [105m slack]
+  Preheat Oven: 17:10 -> 17:15  [10m slack]
+  Roast chicken: 17:15 -> 18:45  [0m (critical)]
+  Roast potatoes: 18:15 -> 18:55  [55m slack]
+  Make gravy: 18:45 -> 18:55  [0m (critical)]
   Plate up: 18:55 -> 19:00  [0m (critical)]"
 `;
 

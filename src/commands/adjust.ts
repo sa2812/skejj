@@ -7,6 +7,10 @@ import { solve } from '../engine.js';
 export const adjustCommand = new Command('adjust')
   .description('Interactively adjust a solved schedule in a re-solve loop')
   .argument('<file>', 'Path to schedule JSON file')
+  .addHelpText('after', `
+Examples:
+  $ skejj adjust examples/roast-chicken.json
+  $ skejj adjust myplan.json`)
   .action(async (file: string) => {
     // TTY guard: interactive terminal required
     if (!process.stdin.isTTY) {

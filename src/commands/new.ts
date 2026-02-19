@@ -9,6 +9,9 @@ import { solve } from '../engine.js';
 
 export const newCommand = new Command('new')
   .description('Guided wizard to create a new schedule')
+  .addHelpText('after', `
+Examples:
+  $ skejj new`)
   .action(async () => {
     // TTY guard: wizard requires an interactive terminal
     if (!process.stdin.isTTY) {

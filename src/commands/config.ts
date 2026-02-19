@@ -12,6 +12,12 @@ import { setAiConfig, showAiConfig } from '../ai/config.js';
 export const configCommand = new Command('config')
   .description('Manage LLM provider configuration');
 
+configCommand.addHelpText('after', `
+Examples:
+  $ skejj config show
+  $ skejj config set provider openai
+  $ skejj config set apiKey sk-...`);
+
 configCommand
   .command('set <key> <value>')
   .description(
@@ -21,6 +27,12 @@ configCommand
     '    model      Model name (optional; defaults: gpt-4o, claude-sonnet-4-20250514)\n' +
     '    apiKey     API key for the provider'
   )
+  .addHelpText('after', `
+Examples:
+  $ skejj config set provider openai
+  $ skejj config set provider anthropic
+  $ skejj config set apiKey sk-your-key-here
+  $ skejj config set model gpt-4o`)
   .action(async (key: string, value: string) => {
     try {
       await setAiConfig(key, value);
