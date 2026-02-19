@@ -33,6 +33,13 @@
     "react": "^19.1.0",
     "zod": "^3.0.0"
   },
+  "optionalDependencies": {
+    "@skejj/engine-darwin-arm64": "0.1.0",
+    "@skejj/engine-darwin-x64": "0.1.0",
+    "@skejj/engine-linux-x64": "0.1.0",
+    "@skejj/engine-linux-arm64": "0.1.0",
+    "@skejj/engine-win32-x64": "0.1.0"
+  },
   "devDependencies": {
     "@types/node": "^25.2.3",
     "@types/react": "^19.1.0",
