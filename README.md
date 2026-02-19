@@ -273,6 +273,25 @@ Total time: 3h 40m
 Steps: 10
 Critical path: 3h 40m (6 steps)
 Resources used: Helpers
+
+--- Critical Path ---
+Buy supplies -> Decorate venue -> Welcome guests -> Party games -> Serve cake -> Clean up
+
+Float per step:
+  Buy supplies: 10:00 -> 11:00  [0m (critical)]
+  Bake cake: 10:00 -> 11:00  [95m slack]
+  Decorate venue: 11:00 -> 11:45  [0m (critical)]
+  Ice cake: 11:00 -> 11:20  [95m slack]
+  Welcome guests: 11:45 -> 11:55  [0m (critical)]
+  Blow up balloons: 11:00 -> 11:30  [15m slack]
+  Party games: 11:55 -> 12:55  [0m (critical)]
+  Set up games: 11:00 -> 11:20  [25m slack]
+  Serve cake: 12:55 -> 13:10  [0m (critical)]
+  Clean up: 13:10 -> 13:40  [0m (critical)]
+
+--- Warnings ---
+  - Step 'Blow up balloons' was delayed beyond its available slack due to resource conflict with 'Helpers'
+  - Step 'Set up games' was delayed beyond its available slack due to resource conflict with 'Helpers'
 ```
 
 ---
@@ -305,6 +324,21 @@ Day 2 dinner            │    │   │    │    │   │    │    │   │
 Total time: 12h
 Steps: 10
 Critical path: 12h (10 steps)
+
+--- Critical Path ---
+Tower of London -> Borough Market lunch -> Thames Southbank walk -> Tate Modern -> Day 1 dinner -> British Museum -> Covent Garden lunch -> Westminster walk -> London Eye -> Day 2 dinner
+
+Float per step:
+  Tower of London: 09:00 -> 11:00  [0m (critical)]
+  Borough Market lunch: 11:00 -> 12:00  [0m (critical)]
+  Thames Southbank walk: 12:00 -> 12:45  [0m (critical)]
+  Tate Modern: 12:45 -> 14:15  [0m (critical)]
+  Day 1 dinner: 14:15 -> 15:15  [0m (critical)]
+  British Museum: 15:15 -> 17:45  [0m (critical)]
+  Covent Garden lunch: 17:45 -> 18:30  [0m (critical)]
+  Westminster walk: 18:30 -> 19:30  [0m (critical)]
+  London Eye: 19:30 -> 20:00  [0m (critical)]
+  Day 2 dinner: 20:00 -> 21:00  [0m (critical)]
 ```
 
 ---
