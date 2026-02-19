@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useReducer } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { TextInput, Select, ConfirmInput, MultiSelect } from '@inkjs/ui';
 import * as fs from 'fs';
@@ -67,6 +67,105 @@ type WizardScreen =
   | { kind: 'filename-overwrite'; filename: string }
   | { kind: 'confirm'; filename: string };
 
+// ---- useReducer state and actions ------------------------------------------
+
+type WizardState = {
+  screen: WizardScreen;
+  scheduleName: string;
+  steps: StepDraft[];
+  resources: ResourceDraft[];
+  resourceNeeds: ResourceNeed[];
+  timeAnchor: { startTime?: string; endTime?: string } | null;
+  inputError: string | null;
+};
+
+type WizardAction =
+  | { type: 'NAV'; screen: WizardScreen }
+  | { type: 'SET_NAME'; name: string }
+  | { type: 'ADD_STEP'; step: StepDraft }
+  | { type: 'EDIT_STEP'; index: number; step: StepDraft }
+  | { type: 'REMOVE_STEP'; index: number }
+  | { type: 'ADD_RESOURCE'; resource: ResourceDraft }
+  | { type: 'ADD_RESOURCE_NEED'; need: ResourceNeed }
+  | { type: 'SET_TIME_ANCHOR'; anchor: WizardState['timeAnchor'] }
+  | { type: 'ERROR'; msg: string | null };
+
+const initialWizardState: WizardState = {
+  screen: { kind: 'schedule-name' },
+  scheduleName: '',
+  steps: [],
+  resources: [],
+  resourceNeeds: [],
+  timeAnchor: null,
+  inputError: null,
+};
+
+function wizardReducer(state: WizardState, action: WizardAction): WizardState {
+  switch (action.type) {
+    case 'NAV':
+      return { ...state, screen: action.screen, inputError: null };
+    case 'SET_NAME':
+      return { ...state, scheduleName: action.name };
+    case 'ADD_STEP':
+      return { ...state, steps: [...state.steps, action.step] };
+    case 'EDIT_STEP':
+      return {
+        ...state,
+        steps: state.steps.map((s, i) => i === action.index ? action.step : s),
+      };
+    case 'REMOVE_STEP': {
+      const removedId = state.steps[action.index].id;
+      return {
+        ...state,
+        steps: state.steps
+          .filter((_, i) => i !== action.index)
+          .map((s) => ({
+            ...s,
+            dependencies: s.dependencies.filter((d) => d.stepId !== removedId),
+          })),
+        resourceNeeds: state.resourceNeeds.filter((rn) => rn.stepId !== removedId),
+      };
+    }
+    case 'ADD_RESOURCE':
+      return { ...state, resources: [...state.resources, action.resource] };
+    case 'ADD_RESOURCE_NEED':
+      return {
+        ...state,
+        resourceNeeds: [
+          ...state.resourceNeeds.filter(
+            (rn) => !(rn.stepId === action.need.stepId && rn.resourceId === action.need.resourceId)
+          ),
+          action.need,
+        ],
+      };
+    case 'SET_TIME_ANCHOR':
+      return { ...state, timeAnchor: action.anchor };
+    case 'ERROR':
+      return { ...state, inputError: action.msg };
+    default:
+      return state;
+  }
+}
+
+// ---- advance resource-needs helper -----------------------------------------
+
+function advanceResourceNeeds(
+  stepIndex: number,
+  resourceIdx: number,
+  steps: StepDraft[],
+  resources: ResourceDraft[]
+): WizardScreen {
+  const nextStepIdx = stepIndex + 1;
+  if (nextStepIdx < steps.length) {
+    return { kind: 'resource-needs-step', stepIndex: nextStepIdx, resourceIdx };
+  }
+  const nextResourceIdx = resourceIdx + 1;
+  if (nextResourceIdx < resources.length) {
+    return { kind: 'resource-needs-step', stepIndex: 0, resourceIdx: nextResourceIdx };
+  }
+  return { kind: 'time-anchor' };
+}
+
 // ---- main component --------------------------------------------------------
 
 export interface WizardAppProps {
@@ -76,57 +175,34 @@ export interface WizardAppProps {
 export default function WizardApp({ onComplete }: WizardAppProps) {
   const { exit } = useApp();
 
-  const [screen, setScreen] = useState<WizardScreen>({ kind: 'schedule-name' });
-  const [scheduleName, setScheduleName] = useState('');
-  const [steps, setSteps] = useState<StepDraft[]>([]);
-  const [resources, setResources] = useState<ResourceDraft[]>([]);
-  const [resourceNeeds, setResourceNeeds] = useState<ResourceNeed[]>([]);
-  const [timeAnchor, setTimeAnchor] = useState<{ startTime?: string; endTime?: string } | null>(null);
-  const [inputError, setInputError] = useState<string | null>(null);
-
-  // advance through resource-needs matrix: all steps x all resources
-  const advanceResourceNeeds = useCallback(
-    (stepIndex: number, resourceIdx: number, currentSteps: StepDraft[], currentResources: ResourceDraft[]) => {
-      const nextStepIdx = stepIndex + 1;
-      if (nextStepIdx < currentSteps.length) {
-        setScreen({ kind: 'resource-needs-step', stepIndex: nextStepIdx, resourceIdx });
-        return;
-      }
-      const nextResourceIdx = resourceIdx + 1;
-      if (nextResourceIdx < currentResources.length) {
-        setScreen({ kind: 'resource-needs-step', stepIndex: 0, resourceIdx: nextResourceIdx });
-        return;
-      }
-      setScreen({ kind: 'time-anchor' });
-    },
-    []
-  );
+  const [state, dispatch] = useReducer(wizardReducer, initialWizardState);
+  const { screen, scheduleName, steps, resources, resourceNeeds, timeAnchor, inputError } = state;
 
   function buildSchedule(): ScheduleInput {
-    const schedId = toKebab(scheduleName) || 'schedule';
-    const builtSteps = steps.map((s) => ({
+    const schedId = toKebab(state.scheduleName) || 'schedule';
+    const builtSteps = state.steps.map((s) => ({
       id: s.id,
       title: s.title,
       durationMins: s.durationMins,
       dependencies: s.dependencies,
-      resourceNeeds: resourceNeeds
+      resourceNeeds: state.resourceNeeds
         .filter((rn) => rn.stepId === s.id)
         .map((rn) => ({ resourceId: rn.resourceId, quantity: rn.quantity })),
     }));
 
     return {
       id: schedId,
-      name: scheduleName,
+      name: state.scheduleName,
       steps: builtSteps,
       tracks: [],
-      resources: resources.map((r) => ({
+      resources: state.resources.map((r) => ({
         id: r.id,
         name: r.name,
         kind: r.kind,
         roles: [],
         capacity: r.capacity,
       })),
-      ...(timeAnchor ? { timeConstraint: timeAnchor } : {}),
+      ...(state.timeAnchor ? { timeConstraint: state.timeAnchor } : {}),
     };
   }
 
@@ -144,13 +220,13 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text>Schedule name:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key="schedule-name"
           placeholder="e.g. Roast Chicken Dinner"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Name cannot be empty'); return; }
-            setInputError(null);
-            setScheduleName(trimmed);
-            setScreen({ kind: 'step-list' });
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Name cannot be empty' }); return; }
+            dispatch({ type: 'SET_NAME', name: trimmed });
+            dispatch({ type: 'NAV', screen: { kind: 'step-list' } });
           }}
         />
       </Box>
@@ -184,10 +260,10 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
           </Box>
         )}
         <Select options={menuOptions} onChange={(val) => {
-          if (val === 'add') { setScreen({ kind: 'add-step-title' }); return; }
-          if (val === 'edit') { setScreen({ kind: 'edit-step-select' }); return; }
-          if (val === 'remove') { setScreen({ kind: 'remove-step-select' }); return; }
-          if (val === 'done') { setScreen({ kind: 'resources-prompt' }); return; }
+          if (val === 'add') { dispatch({ type: 'NAV', screen: { kind: 'add-step-title' } }); return; }
+          if (val === 'edit') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-select' } }); return; }
+          if (val === 'remove') { dispatch({ type: 'NAV', screen: { kind: 'remove-step-select' } }); return; }
+          if (val === 'done') { dispatch({ type: 'NAV', screen: { kind: 'resources-prompt' } }); return; }
         }} />
       </Box>
     );
@@ -199,12 +275,12 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text bold>New step — title:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. Preheat Oven"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Title cannot be empty'); return; }
-            setInputError(null);
-            setScreen({ kind: 'add-step-duration', title: trimmed });
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Title cannot be empty' }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'add-step-duration', title: trimmed } });
           }}
         />
       </Box>
@@ -218,12 +294,12 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text bold>New step "{title}" — duration (minutes):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. 30"
           onSubmit={(val) => {
             const n = parseInt(val.trim(), 10);
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer (minutes)'); return; }
-            setInputError(null);
-            setScreen({ kind: 'add-step-deps', title, durationMins: n });
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer (minutes)' }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'add-step-deps', title, durationMins: n } });
           }}
         />
       </Box>
@@ -246,18 +322,17 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
           dependencyType: 'FinishToStart' as const,
         })),
       };
-      setSteps((prev) => [...prev, newStep]);
-      setScreen({ kind: 'step-list' });
+      dispatch({ type: 'ADD_STEP', step: newStep });
+      dispatch({ type: 'NAV', screen: { kind: 'step-list' } });
     };
 
     if (depOptions.length === 0) {
-      // First step — no dependencies possible; commit immediately via effect-like trick
-      // Use a one-time onClick workaround: render a prompt to press enter
       return (
         <Box flexDirection="column" gap={1}>
           <Text bold>New step "{title}" — no prior steps to depend on.</Text>
           <Text dimColor>Press enter to add step</Text>
           <TextInput
+            key="add-step-deps-confirm"
             placeholder=""
             onSubmit={() => commitStep([])}
           />
@@ -284,8 +359,8 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Select
           options={[...stepOptions, { label: '< Back', value: 'back' }]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'step-list' }); return; }
-            setScreen({ kind: 'edit-step-title', index: parseInt(val, 10) });
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'step-list' } }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-title', index: parseInt(val, 10) } });
           }}
         />
       </Box>
@@ -300,11 +375,11 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text bold>Edit step {index + 1} — title (enter to keep current):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${index}`}
           defaultValue={step.title}
           onSubmit={(val) => {
             const trimmed = val.trim() || step.title;
-            setInputError(null);
-            setScreen({ kind: 'edit-step-duration', index, title: trimmed });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-duration', index, title: trimmed } });
           }}
         />
       </Box>
@@ -319,13 +394,13 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text bold>Edit step "{title}" — duration (enter to keep {step.durationMins}m):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${index}`}
           defaultValue={String(step.durationMins)}
           onSubmit={(val) => {
             const trimmed = val.trim();
             const n = trimmed ? parseInt(trimmed, 10) : step.durationMins;
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer'); return; }
-            setInputError(null);
-            setScreen({ kind: 'edit-step-deps', index, title, durationMins: n });
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-deps', index, title, durationMins: n } });
           }}
         />
       </Box>
@@ -346,30 +421,32 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
       const newId =
         title !== step.title ? uniqueId(toKebab(title), existingIds) : step.id;
 
-      setSteps((prev) => {
-        const updated = prev.map((s, i) => {
-          if (i === index) {
-            return {
-              id: newId,
-              title,
-              durationMins,
-              dependencies: selectedIds.map((sid) => ({
-                stepId: sid,
-                dependencyType: 'FinishToStart' as const,
-              })),
-            };
-          }
-          // Update references to renamed step in other steps' deps
+      const updatedSteps = steps.map((s, i) => {
+        if (i === index) {
           return {
-            ...s,
-            dependencies: s.dependencies.map((d) =>
-              d.stepId === step.id ? { ...d, stepId: newId } : d
-            ),
+            id: newId,
+            title,
+            durationMins,
+            dependencies: selectedIds.map((sid) => ({
+              stepId: sid,
+              dependencyType: 'FinishToStart' as const,
+            })),
           };
-        });
-        return updated;
+        }
+        // Update references to renamed step in other steps' deps
+        return {
+          ...s,
+          dependencies: s.dependencies.map((d) =>
+            d.stepId === step.id ? { ...d, stepId: newId } : d
+          ),
+        };
       });
-      setScreen({ kind: 'step-list' });
+
+      // Apply each updated step via EDIT_STEP actions
+      updatedSteps.forEach((s, i) => {
+        dispatch({ type: 'EDIT_STEP', index: i, step: s });
+      });
+      dispatch({ type: 'NAV', screen: { kind: 'step-list' } });
     };
 
     if (depOptions.length === 0) {
@@ -377,7 +454,11 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Box flexDirection="column" gap={1}>
           <Text bold>Edit step "{title}" — no other steps to depend on.</Text>
           <Text dimColor>Press enter to save</Text>
-          <TextInput placeholder="" onSubmit={() => commitEdit([])} />
+          <TextInput
+            key="edit-step-deps-confirm"
+            placeholder=""
+            onSubmit={() => commitEdit([])}
+          />
         </Box>
       );
     }
@@ -402,18 +483,10 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Select
           options={[...stepOptions, { label: '< Back', value: 'back' }]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'step-list' }); return; }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'step-list' } }); return; }
             const idx = parseInt(val, 10);
-            const removedId = steps[idx].id;
-            setSteps((prev) => {
-              const filtered = prev.filter((_, i) => i !== idx);
-              return filtered.map((s) => ({
-                ...s,
-                dependencies: s.dependencies.filter((d) => d.stepId !== removedId),
-              }));
-            });
-            setResourceNeeds((prev) => prev.filter((rn) => rn.stepId !== removedId));
-            setScreen({ kind: 'step-list' });
+            dispatch({ type: 'REMOVE_STEP', index: idx });
+            dispatch({ type: 'NAV', screen: { kind: 'step-list' } });
           }}
         />
       </Box>
@@ -427,8 +500,8 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text dimColor>y = yes, n = no (or press enter for no)</Text>
         <ConfirmInput
           defaultChoice="cancel"
-          onConfirm={() => setScreen({ kind: 'add-resource-name' })}
-          onCancel={() => setScreen({ kind: 'time-anchor' })}
+          onConfirm={() => dispatch({ type: 'NAV', screen: { kind: 'add-resource-name' } })}
+          onCancel={() => dispatch({ type: 'NAV', screen: { kind: 'time-anchor' } })}
         />
       </Box>
     );
@@ -440,12 +513,12 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text bold>Resource name:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. Oven, Kitchen Staff"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Name cannot be empty'); return; }
-            setInputError(null);
-            setScreen({ kind: 'add-resource-kind', name: trimmed });
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Name cannot be empty' }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'add-resource-kind', name: trimmed } });
           }}
         />
       </Box>
@@ -464,10 +537,13 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
             { label: 'Consumable (ingredients, materials)', value: 'Consumable' },
           ]}
           onChange={(val: string) => {
-            setScreen({
-              kind: 'add-resource-capacity',
-              name,
-              resourceKind: val as 'Equipment' | 'People' | 'Consumable',
+            dispatch({
+              type: 'NAV',
+              screen: {
+                kind: 'add-resource-capacity',
+                name,
+                resourceKind: val as 'Equipment' | 'People' | 'Consumable',
+              },
             });
           }}
         />
@@ -482,15 +558,15 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text bold>Resource "{name}" — capacity (units available simultaneously):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. 1"
           onSubmit={(val) => {
             const n = parseInt(val.trim(), 10);
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer'); return; }
-            setInputError(null);
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
             const existingIds = resources.map((r) => r.id);
             const newId = uniqueId(toKebab(name), existingIds);
-            setResources((prev) => [...prev, { id: newId, name, kind, capacity: n }]);
-            setScreen({ kind: 'more-resources' });
+            dispatch({ type: 'ADD_RESOURCE', resource: { id: newId, name, kind, capacity: n } });
+            dispatch({ type: 'NAV', screen: { kind: 'more-resources' } });
           }}
         />
       </Box>
@@ -506,13 +582,12 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text dimColor>y = yes, n = no</Text>
         <ConfirmInput
           defaultChoice="cancel"
-          onConfirm={() => setScreen({ kind: 'add-resource-name' })}
+          onConfirm={() => dispatch({ type: 'NAV', screen: { kind: 'add-resource-name' } })}
           onCancel={() => {
             if (steps.length > 0 && resources.length > 0) {
-              // Use the updated resources array (lastResource was just added)
-              setScreen({ kind: 'resource-needs-step', stepIndex: 0, resourceIdx: 0 });
+              dispatch({ type: 'NAV', screen: { kind: 'resource-needs-step', stepIndex: 0, resourceIdx: 0 } });
             } else {
-              setScreen({ kind: 'time-anchor' });
+              dispatch({ type: 'NAV', screen: { kind: 'time-anchor' } });
             }
           }}
         />
@@ -527,7 +602,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
 
     if (!step || !resource) {
       // Guard: if somehow out of bounds, proceed to time-anchor
-      setScreen({ kind: 'time-anchor' });
+      dispatch({ type: 'NAV', screen: { kind: 'time-anchor' } });
       return <Box><Text>...</Text></Box>;
     }
 
@@ -537,8 +612,11 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text dimColor>y = yes, n = no</Text>
         <ConfirmInput
           defaultChoice="cancel"
-          onConfirm={() => setScreen({ kind: 'resource-needs-qty', stepIndex, resourceIdx })}
-          onCancel={() => advanceResourceNeeds(stepIndex, resourceIdx, steps, resources)}
+          onConfirm={() => dispatch({ type: 'NAV', screen: { kind: 'resource-needs-qty', stepIndex, resourceIdx } })}
+          onCancel={() => dispatch({
+            type: 'NAV',
+            screen: advanceResourceNeeds(stepIndex, resourceIdx, steps, resources),
+          })}
         />
       </Box>
     );
@@ -553,16 +631,16 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text bold>How many "{resource.name}" does "{step.title}" need?</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. 1"
           onSubmit={(val) => {
             const n = parseInt(val.trim(), 10);
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer'); return; }
-            setInputError(null);
-            setResourceNeeds((prev) => [
-              ...prev.filter((rn) => !(rn.stepId === step.id && rn.resourceId === resource.id)),
-              { stepId: step.id, resourceId: resource.id, quantity: n },
-            ]);
-            advanceResourceNeeds(stepIndex, resourceIdx, steps, resources);
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
+            dispatch({ type: 'ADD_RESOURCE_NEED', need: { stepId: step.id, resourceId: resource.id, quantity: n } });
+            dispatch({
+              type: 'NAV',
+              screen: advanceResourceNeeds(stepIndex, resourceIdx, steps, resources),
+            });
           }}
         />
       </Box>
@@ -581,10 +659,10 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
           ]}
           onChange={(val) => {
             if (val === 'none') {
-              setTimeAnchor(null);
-              setScreen({ kind: 'filename' });
+              dispatch({ type: 'SET_TIME_ANCHOR', anchor: null });
+              dispatch({ type: 'NAV', screen: { kind: 'filename' } });
             } else {
-              setScreen({ kind: 'time-anchor-value', anchor: val as 'start' | 'end' });
+              dispatch({ type: 'NAV', screen: { kind: 'time-anchor-value', anchor: val as 'start' | 'end' } });
             }
           }}
         />
@@ -601,13 +679,16 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text dimColor>Example: 2026-02-18T17:00:00</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="2026-02-18T17:00:00"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Time value cannot be empty'); return; }
-            setInputError(null);
-            setTimeAnchor(anchor === 'start' ? { startTime: trimmed } : { endTime: trimmed });
-            setScreen({ kind: 'filename' });
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Time value cannot be empty' }); return; }
+            dispatch({
+              type: 'SET_TIME_ANCHOR',
+              anchor: anchor === 'start' ? { startTime: trimmed } : { endTime: trimmed },
+            });
+            dispatch({ type: 'NAV', screen: { kind: 'filename' } });
           }}
         />
       </Box>
@@ -622,15 +703,15 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text dimColor>Default: {suggested}</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key="filename"
           defaultValue={suggested}
           onSubmit={(val) => {
             const trimmed = val.trim() || suggested;
-            setInputError(null);
             const fullPath = path.resolve(process.cwd(), trimmed);
             if (fs.existsSync(fullPath)) {
-              setScreen({ kind: 'filename-overwrite', filename: trimmed });
+              dispatch({ type: 'NAV', screen: { kind: 'filename-overwrite', filename: trimmed } });
             } else {
-              setScreen({ kind: 'confirm', filename: trimmed });
+              dispatch({ type: 'NAV', screen: { kind: 'confirm', filename: trimmed } });
             }
           }}
         />
@@ -646,8 +727,8 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
         <Text dimColor>y = overwrite, n = choose another name</Text>
         <ConfirmInput
           defaultChoice="cancel"
-          onConfirm={() => setScreen({ kind: 'confirm', filename })}
-          onCancel={() => setScreen({ kind: 'filename' })}
+          onConfirm={() => dispatch({ type: 'NAV', screen: { kind: 'confirm', filename } })}
+          onCancel={() => dispatch({ type: 'NAV', screen: { kind: 'filename' } })}
         />
       </Box>
     );
@@ -679,7 +760,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
             onComplete(schedule, filename);
             exit();
           }}
-          onCancel={() => setScreen({ kind: 'step-list' })}
+          onCancel={() => dispatch({ type: 'NAV', screen: { kind: 'step-list' } })}
         />
       </Box>
     );
