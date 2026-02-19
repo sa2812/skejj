@@ -20,6 +20,7 @@ await esbuild.build({
     'ai',
     '@ai-sdk/anthropic',
     '@ai-sdk/openai',
+    'yaml',
     // Node.js built-ins
     'node:*',
     'fs',

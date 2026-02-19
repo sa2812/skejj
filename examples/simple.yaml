@@ -1,0 +1,26 @@
+id: simple-yaml
+name: Simple YAML Test Schedule
+steps:
+  - id: 1
+    title: Step A
+    durationMins: 30
+    dependencies: []
+    resourceNeeds: []
+  - id: 2
+    title: Step B
+    durationMins: 45
+    dependencies:
+      - stepId: 1
+        dependencyType: FinishToStart
+    resourceNeeds: []
+  - id: 3
+    title: Step C
+    durationMins: 20
+    dependencies:
+      - stepId: 1
+        dependencyType: FinishToStart
+    resourceNeeds: []
+tracks: []
+resources: []
+timeConstraint:
+  startTime: "2026-03-01T10:00:00"

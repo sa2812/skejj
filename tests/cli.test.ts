@@ -144,4 +144,52 @@ describe('skejj CLI', () => {
     expect(result.stdout).toContain('generate');
   });
 
+  // -------------------------------------------------------------------------
+  // Test 7: YAML make produces ASCII Gantt
+  // -------------------------------------------------------------------------
+  it('make produces ASCII Gantt for simple.yaml', async () => {
+    const result = await run(['make', join(EXAMPLES, 'simple.yaml')]);
+
+    expect(result.exitCode).toBe(0);
+    // Step titles should appear
+    expect(result.stdout).toContain('Step A');
+    expect(result.stdout).toContain('Step B');
+    // Summary section
+    expect(result.stdout).toContain('Summary');
+  });
+
+  // -------------------------------------------------------------------------
+  // Test 8: YAML check reports valid
+  // -------------------------------------------------------------------------
+  it('check reports valid for simple.yaml', async () => {
+    const result = await run(['check', join(EXAMPLES, 'simple.yaml')]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.toLowerCase()).toContain('valid');
+  });
+
+  // -------------------------------------------------------------------------
+  // Test 9: YAML parse error shows line info
+  // -------------------------------------------------------------------------
+  it('check reports YAML parse error with line info', async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), 'skejj-test-'));
+    const badYamlFile = join(tmpDir, 'bad.yaml');
+    const { writeFile } = await import('node:fs/promises');
+    // Unclosed bracket — triggers a YAMLParseError with linePos
+    await writeFile(badYamlFile, 'id: test\nsteps:\n  - bad yaml: [\n');
+
+    try {
+      const result = await run(['check', badYamlFile]);
+
+      expect(result.exitCode).not.toBe(0);
+      const combinedOutput = result.stdout + result.stderr;
+      // Error message should mention YAML
+      expect(combinedOutput.toLowerCase()).toContain('yaml');
+      // Error message should mention line location
+      expect(combinedOutput.toLowerCase()).toContain('line');
+    } finally {
+      await rm(tmpDir, { recursive: true });
+    }
+  });
+
 });
