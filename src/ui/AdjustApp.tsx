@@ -225,7 +225,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold color="cyan">Editing step: {step.title}</Text>
-        <Text dimColor>Select a field to edit:</Text>
+        <Text dimColor>Choose a field to edit, or go back</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <Select
           options={fieldOptions}
@@ -269,6 +269,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
+        <Text dimColor>Submit empty to keep current value — use "{"< Back to menu"}" in field select to go back</Text>
       </Box>
     );
   }
@@ -358,7 +359,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Edit "{step.title}" — dependencies:</Text>
-        <Text dimColor>Space to toggle, Enter to confirm. After confirming, choose dependency type for new deps.</Text>
+        <Text dimColor>Toggle dependencies with Space, confirm with Enter</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <MultiSelect
           options={depOptions}
@@ -420,7 +421,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Edit "{step.title}" — resourceNeeds:</Text>
-        <Text dimColor>Space to toggle resources. Enter to confirm. You'll set quantities for newly added ones.</Text>
+        <Text dimColor>Toggle resources with Space, confirm with Enter</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <MultiSelect
           options={resourceOptions}
@@ -583,16 +584,22 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>New step — title:</Text>
+        <Text dimColor>Give this step a short, descriptive name</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key={screen.kind}
           placeholder="e.g. Preheat Oven"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Title cannot be empty' }); return; }
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to main menu
+              dispatch({ type: 'NAV', screen: { kind: 'main-menu' } });
+              return;
+            }
             dispatch({ type: 'NAV', screen: { kind: 'add-step-duration', title: trimmed } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -608,7 +615,13 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
           key={screen.kind}
           placeholder="e.g. 30"
           onSubmit={(val) => {
-            const n = parseInt(val.trim(), 10);
+            const trimmed = val.trim();
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to add-step-title
+              dispatch({ type: 'NAV', screen: { kind: 'add-step-title' } });
+              return;
+            }
+            const n = parseInt(trimmed, 10);
             if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer (minutes)' }); return; }
 
             const existingIds = schedule.steps.map((s) => s.id);
@@ -628,6 +641,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             dispatch({ type: 'NAV', screen: { kind: 'main-menu' } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -703,16 +717,22 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>New resource — name:</Text>
+        <Text dimColor>Name this resource (e.g. Oven, Kitchen Staff)</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
           key={screen.kind}
           placeholder="e.g. Oven, Kitchen Staff"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Name cannot be empty' }); return; }
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to edit-resources
+              dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } });
+              return;
+            }
             dispatch({ type: 'NAV', screen: { kind: 'add-resource-kind', name: trimmed } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -755,7 +775,13 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
           key={screen.kind}
           placeholder="e.g. 1"
           onSubmit={(val) => {
-            const n = parseInt(val.trim(), 10);
+            const trimmed = val.trim();
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to add-resource-kind
+              dispatch({ type: 'NAV', screen: { kind: 'add-resource-kind', name } });
+              return;
+            }
+            const n = parseInt(trimmed, 10);
             if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
 
             const existingIds = schedule.resources.map((r) => r.id);
@@ -771,6 +797,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -959,6 +986,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Time constraint (current: {current}):</Text>
+        <Text dimColor>Choose how to anchor your schedule in time</Text>
         <Select
           options={[
             { label: 'Set start time (schedule from a specific time)', value: 'startTime' },
@@ -998,7 +1026,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
           placeholder="2026-02-18T17:00:00"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Time value cannot be empty' }); return; }
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to edit-time-constraint
+              dispatch({ type: 'NAV', screen: { kind: 'edit-time-constraint' } });
+              return;
+            }
             const updated: ScheduleInput = {
               ...schedule,
               timeConstraint: constraintType === 'startTime'
@@ -1009,6 +1041,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             dispatch({ type: 'NAV', screen: { kind: 'main-menu' } });
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
@@ -1060,7 +1093,12 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
           key="save-new-file"
           defaultValue={suggested}
           onSubmit={(val) => {
-            const trimmed = val.trim() || suggested;
+            const trimmed = val.trim();
+            if (!trimmed) {
+              // Back navigation: empty submit goes back to exit-prompt
+              dispatch({ type: 'NAV', screen: { kind: 'exit-prompt' } });
+              return;
+            }
             try {
               const outPath = path.resolve(trimmed);
               fs.writeFileSync(outPath, JSON.stringify(schedule, null, 2));
@@ -1070,6 +1108,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             }
           }}
         />
+        <Text dimColor>Leave empty and press Enter to go back</Text>
       </Box>
     );
   }
