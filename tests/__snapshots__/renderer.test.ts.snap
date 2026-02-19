@@ -1,17 +1,23 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`renderer golden fixtures > birthday-party.json at 80 cols 1`] = `
-"                   10:00   10:30   11:00   11:30   12:00   12:30   13:00   13:3013:40
-Buy supplies       [##############]
-Bake cake          [##############]
-Decorate venue                     [##########]
-Ice cake                           [###]
-Welcome guests                                 [#]
-Blow up balloons                                  [######]
-Party games                                       [##############]
-Set up games                                              [###]
-Serve cake                                                        [##]
-Clean up                                                              [######]
+"Kids Birthday Party
+Planning a kids birthday party with a team of helpers. People resource allocation ensures we never exceed 4 helpers simultaneously.
+
+                   10:00   10:30    11:00   11:30   12:00    12:30   13:00   13:3013:40
+─ Food ────────────────────────────────────────────────────────────────────────
+Bake cake          ░░░░░░░░░░░░░░░░░│       │       │        │       │       │  
+Ice cake           │       │        ░░░░░   │       │        │       │       │  
+Serve cake         │       │        │       │       │        │      ████     │  
+─ Venue ───────────────────────────────────────────────────────────────────────
+Buy supplies       █████████████████│       │       │        │       │       │  
+Decorate venue     │       │        ████████████    │        │       │       │  
+Blow up balloons   │       │        │       │      ░░░░░░░░  │       │       │  
+Clean up           │       │        │       │       │        │       │  ████████
+─ Activities ──────────────────────────────────────────────────────────────────
+Welcome guests     │       │        │       │   ███ │        │       │       │  
+Party games        │       │        │       │      █████████████████ │       │  
+Set up games       │       │        │       │       │      ░░░░░░    │       │  
 
 --- Warnings ---
   - Step 'Blow up balloons' was delayed beyond its available slack due to resource conflict with 'Helpers'
@@ -19,53 +25,76 @@ Clean up                                                              [######]
 `;
 
 exports[`renderer golden fixtures > london-sightseeing.json at 80 cols 1`] = `
-"                        09:0010:0011:0012:0013:0014:0015:0016:0017:0018:0019:0020:0021:00
-Tower of London         [#######]
-Borough Market lunch             [###]
-Thames Southbank walk                 [#]
-Tate Modern                              [#####]
-Day 1 dinner                                    [##]
-British Museum                                      [#########]
-Covent Garden lunch                                            [##]
-Westminster walk                                                   [##]
-London Eye                                                             [#]
-Day 2 dinner                                                              [##]"
+"London Weekend Sightseeing
+A two-day London itinerary covering major landmarks and cultural highlights. Dinner steps use ALAP timing to push them as late in the day as possible.
+
+                        09:0010:0011:0012:0013:0014:0015:0016:0017:0018:0019:0020:0021:00
+─ Day 1 ───────────────────────────────────────────────────────────────────────
+Tower of London         █████████│    │    │   │    │    │   │    │    │   │    
+Borough Market lunch    │    │   █████│    │   │    │    │   │    │    │   │    
+Thames Southbank walk   │    │   │    ████ │   │    │    │   │    │    │   │    
+Tate Modern             │    │   │    │   ███████   │    │   │    │    │   │    
+Day 1 dinner            │    │   │    │    │   │ ████    │   │    │    │   │    
+─ Day 2 ───────────────────────────────────────────────────────────────────────
+British Museum          │    │   │    │    │   │    │████████████ │    │   │    
+Covent Garden lunch     │    │   │    │    │   │    │    │   │   ███   │   │    
+Westminster walk        │    │   │    │    │   │    │    │   │    │ █████  │    
+London Eye              │    │   │    │    │   │    │    │   │    │    │ ██│    
+Day 2 dinner            │    │   │    │    │   │    │    │   │    │    │   █████"
 `;
 
 exports[`renderer golden fixtures > roast-chicken.json at 80 cols 1`] = `
-"                   16:25      16:55       17:25      17:55       18:25      18:5519:00
-Prep chicken       [####]
-Prep potatoes      [######]
-Steam vegetables   [####]
-Set table          [##]
-Roast chicken            [################################]
-Roast potatoes                                             [###############]
-Make gravy                                                 [##]
-Plate up                                                                    [#]"
+"Roast Chicken Dinner
+A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
+
+                   16:25       16:55       17:25      17:55       18:25       18:5519:00
+─ Mains ───────────────────────────────────────────────────────────────────────
+Prep chicken       ██████      │           │          │           │           │ 
+Roast chicken      │     ███████████████████████████████████      │           │ 
+Make gravy         │           │           │          │     ░░░░  │           │ 
+Plate up           │           │           │          │           │           ██
+─ Sides ───────────────────────────────────────────────────────────────────────
+Prep potatoes      ░░░░░░░░    │           │          │           │           │ 
+Steam vegetables   ░░░░░░      │           │          │           │           │ 
+Roast potatoes     │           │           │          │     ██████████████████│ 
+─ Setup ───────────────────────────────────────────────────────────────────────
+Set table          ░░░░        │           │          │           │           │ "
 `;
 
 exports[`renderer golden fixtures > roast-chicken.json at 120 cols 1`] = `
-"                   16:25              16:55              17:25              17:55               18:25              18:5519:00
-Prep chicken       [########]
-Prep potatoes      [###########]
-Steam vegetables   [########]
-Set table          [####]
-Roast chicken                [#######################################################]
-Roast potatoes                                                                        [###########################]
-Make gravy                                                                            [####]
-Plate up                                                                                                           [#]"
+"Roast Chicken Dinner
+A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
+
+                   16:25               16:55              17:25               17:55              18:25               18:5519:00
+─ Mains ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Prep chicken       ██████████          │                  │                   │                  │                   │  
+Roast chicken      │         ██████████████████████████████████████████████████████████          │                   │  
+Make gravy         │                   │                  │                   │        ░░░░░░░   │                   │  
+Plate up           │                   │                  │                   │                  │                   ███
+─ Sides ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Prep potatoes      ░░░░░░░░░░░░░       │                  │                   │                  │                   │  
+Steam vegetables   ░░░░░░░░░░          │                  │                   │                  │                   │  
+Roast potatoes     │                   │                  │                   │        ██████████████████████████████│  
+─ Setup ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Set table          ░░░░░░░             │                  │                   │                  │                   │  "
 `;
 
 exports[`renderer golden fixtures > roast-chicken.json with quiet: false 1`] = `
-"                   16:25      16:55       17:25      17:55       18:25      18:5519:00
-Prep chicken       [####]
-Prep potatoes      [######]
-Steam vegetables   [####]
-Set table          [##]
-Roast chicken            [################################]
-Roast potatoes                                             [###############]
-Make gravy                                                 [##]
-Plate up                                                                    [#]
+"Roast Chicken Dinner
+A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
+
+                   16:25       16:55       17:25      17:55       18:25       18:5519:00
+─ Mains ───────────────────────────────────────────────────────────────────────
+Prep chicken       ██████      │           │          │           │           │ 
+Roast chicken      │     ███████████████████████████████████      │           │ 
+Make gravy         │           │           │          │     ░░░░  │           │ 
+Plate up           │           │           │          │           │           ██
+─ Sides ───────────────────────────────────────────────────────────────────────
+Prep potatoes      ░░░░░░░░    │           │          │           │           │ 
+Steam vegetables   ░░░░░░      │           │          │           │           │ 
+Roast potatoes     │           │           │          │     ██████████████████│ 
+─ Setup ───────────────────────────────────────────────────────────────────────
+Set table          ░░░░        │           │          │           │           │ 
 
 --- Summary ---
 Total time: 2h 35m
@@ -88,8 +117,10 @@ Float per step:
 `;
 
 exports[`renderer golden fixtures > simple.json at 80 cols 1`] = `
-"             10:00                     10:30                     11:00        11:15
-Step A       [########################]
-Step B                                 [#####################################]
-Step C                                 [###############]"
+"Simple Test Schedule
+
+         10:00                       10:30                        11:00         11:15
+Step A   ████████████████████████████│                            │             
+Step B   │                           ███████████████████████████████████████████
+Step C   │                           ░░░░░░░░░░░░░░░░░░░          │             "
 `;

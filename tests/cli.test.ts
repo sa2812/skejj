@@ -44,14 +44,14 @@ async function run(args: string[], opts: { cwd?: string } = {}) {
 describe('skejj CLI', () => {
 
   // -------------------------------------------------------------------------
-  // Test 1: make produces ASCII Gantt
+  // Test 1: make produces Gantt chart
   // -------------------------------------------------------------------------
   it('make produces ASCII Gantt for roast-chicken.json', async () => {
     const result = await run(['make', join(EXAMPLES, 'roast-chicken.json')]);
 
     expect(result.exitCode).toBe(0);
-    // ASCII Gantt uses # characters for steps
-    expect(result.stdout).toContain('#');
+    // Gantt uses Unicode block characters for bars
+    expect(result.stdout).toMatch(/[█░]/);
     // Step titles should appear
     expect(result.stdout).toContain('Roast chicken');
     expect(result.stdout).toContain('Prep chicken');
