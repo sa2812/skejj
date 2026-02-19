@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useReducer } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { TextInput, Select, MultiSelect } from '@inkjs/ui';
 import * as fs from 'fs';
@@ -58,6 +58,61 @@ type AdjustScreen =
   | { kind: 'exit-prompt' }
   | { kind: 'save-new-file' };
 
+// ---- useReducer state and actions ------------------------------------------
+
+type AdjustState = {
+  screen: AdjustScreen;
+  schedule: ScheduleInput;
+  solved: SolvedScheduleResult;
+  solveError: string | null;
+  inputError: string | null;
+  statusMsg: string | null;
+};
+
+type AdjustAction =
+  | { type: 'NAV'; screen: AdjustScreen }
+  | { type: 'UPDATE_SCHEDULE'; schedule: ScheduleInput; statusMsg?: string }
+  | { type: 'SET_SOLVE_ERROR'; error: string }
+  | { type: 'ERROR'; msg: string | null }
+  | { type: 'STATUS'; msg: string }
+  | { type: 'CLEAR_STATUS' };
+
+function adjustReducer(state: AdjustState, action: AdjustAction): AdjustState {
+  switch (action.type) {
+    case 'NAV':
+      return { ...state, screen: action.screen, inputError: null };
+    case 'UPDATE_SCHEDULE': {
+      try {
+        const result = solve(action.schedule);
+        return {
+          ...state,
+          schedule: action.schedule,
+          solved: result,
+          solveError: null,
+          statusMsg: action.statusMsg ?? state.statusMsg,
+        };
+      } catch (e) {
+        return {
+          ...state,
+          schedule: action.schedule,
+          solveError: (e as Error).message ?? String(e),
+          statusMsg: action.statusMsg ?? state.statusMsg,
+        };
+      }
+    }
+    case 'SET_SOLVE_ERROR':
+      return { ...state, solveError: action.error };
+    case 'ERROR':
+      return { ...state, inputError: action.msg };
+    case 'STATUS':
+      return { ...state, statusMsg: action.msg };
+    case 'CLEAR_STATUS':
+      return { ...state, statusMsg: null };
+    default:
+      return state;
+  }
+}
+
 // ---- props -----------------------------------------------------------------
 
 export interface AdjustAppProps {
@@ -71,29 +126,16 @@ export interface AdjustAppProps {
 export default function AdjustApp({ initialSchedule, initialSolved, originalFile }: AdjustAppProps) {
   const { exit } = useApp();
 
-  const [screen, setScreen] = useState<AdjustScreen>({ kind: 'main-menu' });
-  const [schedule, setSchedule] = useState<ScheduleInput>(initialSchedule);
-  const [solved, setSolved] = useState<SolvedScheduleResult>(initialSolved);
-  const [solveError, setSolveError] = useState<string | null>(null);
-  const [inputError, setInputError] = useState<string | null>(null);
-  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(adjustReducer, {
+    screen: { kind: 'main-menu' },
+    schedule: initialSchedule,
+    solved: initialSolved,
+    solveError: null,
+    inputError: null,
+    statusMsg: null,
+  });
 
-  // ---- re-solve helper -----------------------------------------------------
-
-  const resolveSchedule = useCallback((updated: ScheduleInput) => {
-    try {
-      const result = solve(updated);
-      setSolved(result);
-      setSolveError(null);
-    } catch (e) {
-      setSolveError((e as Error).message ?? String(e));
-    }
-  }, []);
-
-  const updateSchedule = useCallback((updated: ScheduleInput) => {
-    setSchedule(updated);
-    resolveSchedule(updated);
-  }, [resolveSchedule]);
+  const { screen, schedule, solved, solveError, inputError, statusMsg } = state;
 
   // ---- gantt display -------------------------------------------------------
 
@@ -134,21 +176,21 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Select
           options={menuOptions}
           onChange={(val) => {
-            setInputError(null);
-            setStatusMsg(null);
+            dispatch({ type: 'ERROR', msg: null });
+            dispatch({ type: 'CLEAR_STATUS' });
             if (val === 'add-step') {
-              setScreen({ kind: 'add-step-title' });
+              dispatch({ type: 'NAV', screen: { kind: 'add-step-title' } });
             } else if (val === 'remove-step') {
-              setScreen({ kind: 'remove-step' });
+              dispatch({ type: 'NAV', screen: { kind: 'remove-step' } });
             } else if (val === 'edit-resources') {
-              setScreen({ kind: 'edit-resources' });
+              dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } });
             } else if (val === 'edit-time-constraint') {
-              setScreen({ kind: 'edit-time-constraint' });
+              dispatch({ type: 'NAV', screen: { kind: 'edit-time-constraint' } });
             } else if (val === 'exit') {
-              setScreen({ kind: 'exit-prompt' });
+              dispatch({ type: 'NAV', screen: { kind: 'exit-prompt' } });
             } else if (val.startsWith('step:')) {
               const idx = parseInt(val.split(':')[1], 10);
-              setScreen({ kind: 'edit-step-field-select', stepIndex: idx });
+              dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex: idx } });
             }
           }}
         />
@@ -188,15 +230,15 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Select
           options={fieldOptions}
           onChange={(val) => {
-            setInputError(null);
-            if (val === 'back') { setScreen({ kind: 'main-menu' }); return; }
-            if (val === 'title') { setScreen({ kind: 'edit-step-title', stepIndex }); }
-            else if (val === 'duration') { setScreen({ kind: 'edit-step-duration', stepIndex }); }
-            else if (val === 'timing-policy') { setScreen({ kind: 'edit-step-timing-policy', stepIndex }); }
-            else if (val === 'dependencies') { setScreen({ kind: 'edit-step-dependencies', stepIndex }); }
-            else if (val === 'resource-needs') { setScreen({ kind: 'edit-step-resource-needs', stepIndex }); }
-            else if (val === 'description') { setScreen({ kind: 'edit-step-description', stepIndex }); }
-            else if (val === 'track') { setScreen({ kind: 'edit-step-track', stepIndex }); }
+            dispatch({ type: 'ERROR', msg: null });
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); return; }
+            if (val === 'title') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-title', stepIndex } }); }
+            else if (val === 'duration') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-duration', stepIndex } }); }
+            else if (val === 'timing-policy') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-timing-policy', stepIndex } }); }
+            else if (val === 'dependencies') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-dependencies', stepIndex } }); }
+            else if (val === 'resource-needs') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-resource-needs', stepIndex } }); }
+            else if (val === 'description') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-description', stepIndex } }); }
+            else if (val === 'track') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-track', stepIndex } }); }
           }}
         />
       </Box>
@@ -212,20 +254,19 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>Edit "{step.title}" — title:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${stepIndex}`}
           defaultValue={step.title}
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Title cannot be empty'); return; }
-            setInputError(null);
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Title cannot be empty' }); return; }
             const updated: ScheduleInput = {
               ...schedule,
               steps: schedule.steps.map((s, i) =>
                 i === stepIndex ? { ...s, title: trimmed } : s
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(`Updated title to "${trimmed}"`);
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Updated title to "${trimmed}"` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -241,21 +282,20 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>Edit "{step.title}" — durationMins:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${stepIndex}`}
           defaultValue={String(step.durationMins)}
           onSubmit={(val) => {
             const trimmed = val.trim();
             const n = trimmed ? parseInt(trimmed, 10) : step.durationMins;
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer (minutes)'); return; }
-            setInputError(null);
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer (minutes)' }); return; }
             const updated: ScheduleInput = {
               ...schedule,
               steps: schedule.steps.map((s, i) =>
                 i === stepIndex ? { ...s, durationMins: n } : s
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(`Updated durationMins to ${n}`);
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Updated durationMins to ${n}` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -276,7 +316,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: '< Back', value: 'back' },
           ]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'edit-step-field-select', stepIndex }); return; }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } }); return; }
             const policy = val as 'Asap' | 'Alap';
             const updated: ScheduleInput = {
               ...schedule,
@@ -284,9 +324,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                 i === stepIndex ? { ...s, timingPolicy: policy } : s
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(`Updated timingPolicy to ${policy}`);
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Updated timingPolicy to ${policy}` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -304,7 +343,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Box flexDirection="column" gap={1}>
           <Text bold>No other steps to depend on.</Text>
           <Text dimColor>Add more steps first. Press enter to go back.</Text>
-          <TextInput placeholder="" onSubmit={() => setScreen({ kind: 'edit-step-field-select', stepIndex })} />
+          <TextInput
+            key={screen.kind}
+            placeholder=""
+            onSubmit={() => dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } })}
+          />
         </Box>
       );
     }
@@ -321,14 +364,10 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
           options={depOptions}
           defaultValue={currentDepIds}
           onSubmit={(selectedIds) => {
-            setInputError(null);
-            // Find newly added deps that need a type selection
+            dispatch({ type: 'ERROR', msg: null });
             const added = selectedIds.filter((id) => !currentDepIds.includes(id));
             const removed = currentDepIds.filter((id) => !selectedIds.includes(id));
 
-            // Build new dependencies list:
-            // - keep existing deps that are still selected (preserve their type)
-            // - add new deps with FinishToStart default (then prompt for type if desired)
             const existingKept = step.dependencies.filter((d) => selectedIds.includes(d.stepId));
             const newDeps = added.map((id) => ({ stepId: id, dependencyType: 'FinishToStart' as const }));
             const allDeps = [...existingKept, ...newDeps];
@@ -339,13 +378,14 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                 i === stepIndex ? { ...s, dependencies: allDeps } : s
               ),
             };
-            updateSchedule(updated);
 
             const changes = [];
             if (added.length > 0) changes.push(`added: ${added.join(', ')}`);
             if (removed.length > 0) changes.push(`removed: ${removed.join(', ')}`);
-            setStatusMsg(changes.length > 0 ? `Dependencies updated (${changes.join('; ')})` : 'No changes');
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            const msg = changes.length > 0 ? `Dependencies updated (${changes.join('; ')})` : 'No changes';
+
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: msg });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -362,7 +402,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Box flexDirection="column" gap={1}>
           <Text bold>No resources defined.</Text>
           <Text dimColor>Add resources first via "Edit resources". Press enter to go back.</Text>
-          <TextInput placeholder="" onSubmit={() => setScreen({ kind: 'edit-step-field-select', stepIndex })} />
+          <TextInput
+            key={screen.kind}
+            placeholder=""
+            onSubmit={() => dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } })}
+          />
         </Box>
       );
     }
@@ -382,12 +426,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
           options={resourceOptions}
           defaultValue={currentResourceIds}
           onSubmit={(selectedIds) => {
-            setInputError(null);
+            dispatch({ type: 'ERROR', msg: null });
             const added = selectedIds.filter((id) => !currentResourceIds.includes(id));
             const removed = currentResourceIds.filter((id) => !selectedIds.includes(id));
 
             if (removed.length > 0) {
-              // Remove un-selected resources immediately
               const updatedNeeds = step.resourceNeeds.filter((r) => selectedIds.includes(r.resourceId));
               const updated: ScheduleInput = {
                 ...schedule,
@@ -395,20 +438,19 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                   i === stepIndex ? { ...s, resourceNeeds: updatedNeeds } : s
                 ),
               };
-              updateSchedule(updated);
+              dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated });
             }
 
             if (added.length > 0) {
-              // Set quantity for first new resource
-              setScreen({ kind: 'edit-step-resource-need-qty', stepIndex, resourceId: added[0] });
+              dispatch({ type: 'NAV', screen: { kind: 'edit-step-resource-need-qty', stepIndex, resourceId: added[0] } });
               return;
             }
 
             const changes = [];
             if (added.length > 0) changes.push(`added: ${added.join(', ')}`);
             if (removed.length > 0) changes.push(`removed: ${removed.join(', ')}`);
-            setStatusMsg(changes.length > 0 ? `Resource needs updated` : 'No changes');
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            dispatch({ type: 'STATUS', msg: changes.length > 0 ? `Resource needs updated` : 'No changes' });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -427,11 +469,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>How many "{resource?.name ?? resourceId}" does "{step.title}" need?</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${stepIndex}-${resourceId}`}
           defaultValue={existingNeed ? String(existingNeed.quantity) : '1'}
           onSubmit={(val) => {
             const n = parseInt(val.trim(), 10);
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer'); return; }
-            setInputError(null);
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
 
             const updatedNeeds = [
               ...step.resourceNeeds.filter((r) => r.resourceId !== resourceId),
@@ -443,9 +485,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                 i === stepIndex ? { ...s, resourceNeeds: updatedNeeds } : s
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(`Set ${resource?.name ?? resourceId} quantity to ${n}`);
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Set ${resource?.name ?? resourceId} quantity to ${n}` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -460,6 +501,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
       <Box flexDirection="column" gap={1}>
         <Text bold>Edit "{step.title}" — description (empty to clear):</Text>
         <TextInput
+          key={`${screen.kind}-${stepIndex}`}
           defaultValue={step.description ?? ''}
           onSubmit={(val) => {
             const trimmed = val.trim();
@@ -471,9 +513,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                   : s
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(trimmed ? `Updated description` : 'Cleared description');
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: trimmed ? `Updated description` : 'Cleared description' });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -495,6 +536,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Box flexDirection="column" gap={1}>
           <Text bold>Edit "{step.title}" — trackId (no tracks defined, enter value manually or blank to clear):</Text>
           <TextInput
+            key={`${screen.kind}-${stepIndex}`}
             defaultValue={step.trackId ?? ''}
             onSubmit={(val) => {
               const trimmed = val.trim();
@@ -506,9 +548,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                     : s
                 ),
               };
-              updateSchedule(updated);
-              setStatusMsg(trimmed ? `Set trackId to "${trimmed}"` : 'Cleared trackId');
-              setScreen({ kind: 'edit-step-field-select', stepIndex });
+              dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: trimmed ? `Set trackId to "${trimmed}"` : 'Cleared trackId' });
+              dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
             }}
           />
         </Box>
@@ -529,9 +570,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                   : s
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(val ? `Set trackId to "${val}"` : 'Cleared trackId');
-            setScreen({ kind: 'edit-step-field-select', stepIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: val ? `Set trackId to "${val}"` : 'Cleared trackId' });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-step-field-select', stepIndex } });
           }}
         />
       </Box>
@@ -545,12 +585,12 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>New step — title:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. Preheat Oven"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Title cannot be empty'); return; }
-            setInputError(null);
-            setScreen({ kind: 'add-step-duration', title: trimmed });
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Title cannot be empty' }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'add-step-duration', title: trimmed } });
           }}
         />
       </Box>
@@ -565,11 +605,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>New step "{title}" — durationMins:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. 30"
           onSubmit={(val) => {
             const n = parseInt(val.trim(), 10);
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer (minutes)'); return; }
-            setInputError(null);
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer (minutes)' }); return; }
 
             const existingIds = schedule.steps.map((s) => s.id);
             const newId = uniqueId(toKebab(title), existingIds);
@@ -584,9 +624,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
               ...schedule,
               steps: [...schedule.steps, newStep],
             };
-            updateSchedule(updated);
-            setStatusMsg(`Added step "${title}"`);
-            setScreen({ kind: 'main-menu' });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Added step "${title}"` });
+            dispatch({ type: 'NAV', screen: { kind: 'main-menu' } });
           }}
         />
       </Box>
@@ -606,9 +645,10 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Select
           options={[...stepOptions, { label: '< Back', value: 'back' }]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'main-menu' }); return; }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); return; }
             const idx = parseInt(val, 10);
             const removedId = schedule.steps[idx].id;
+            const removedTitle = schedule.steps[idx].title;
             const updatedSteps = schedule.steps
               .filter((_, i) => i !== idx)
               .map((s) => ({
@@ -619,9 +659,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
               ...schedule,
               steps: updatedSteps,
             };
-            updateSchedule(updated);
-            setStatusMsg(`Removed step "${schedule.steps[idx].title}"`);
-            setScreen({ kind: 'main-menu' });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Removed step "${removedTitle}"` });
+            dispatch({ type: 'NAV', screen: { kind: 'main-menu' } });
           }}
         />
       </Box>
@@ -648,11 +687,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Select
           options={menuOptions}
           onChange={(val) => {
-            setStatusMsg(null);
-            if (val === 'back') { setScreen({ kind: 'main-menu' }); }
-            else if (val === 'add') { setScreen({ kind: 'add-resource-name' }); }
-            else if (val === 'edit') { setScreen({ kind: 'edit-resource-select' }); }
-            else if (val === 'remove') { setScreen({ kind: 'remove-resource-select' }); }
+            dispatch({ type: 'CLEAR_STATUS' });
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); }
+            else if (val === 'add') { dispatch({ type: 'NAV', screen: { kind: 'add-resource-name' } }); }
+            else if (val === 'edit') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-select' } }); }
+            else if (val === 'remove') { dispatch({ type: 'NAV', screen: { kind: 'remove-resource-select' } }); }
           }}
         />
       </Box>
@@ -666,12 +705,12 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>New resource — name:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. Oven, Kitchen Staff"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Name cannot be empty'); return; }
-            setInputError(null);
-            setScreen({ kind: 'add-resource-kind', name: trimmed });
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Name cannot be empty' }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'add-resource-kind', name: trimmed } });
           }}
         />
       </Box>
@@ -691,10 +730,13 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: 'Consumable (ingredients, materials)', value: 'Consumable' },
           ]}
           onChange={(val: string) => {
-            setScreen({
-              kind: 'add-resource-capacity',
-              name,
-              resourceKind: val as 'Equipment' | 'People' | 'Consumable',
+            dispatch({
+              type: 'NAV',
+              screen: {
+                kind: 'add-resource-capacity',
+                name,
+                resourceKind: val as 'Equipment' | 'People' | 'Consumable',
+              },
             });
           }}
         />
@@ -710,11 +752,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>Resource "{name}" — capacity (units available simultaneously):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={screen.kind}
           placeholder="e.g. 1"
           onSubmit={(val) => {
             const n = parseInt(val.trim(), 10);
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer'); return; }
-            setInputError(null);
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
 
             const existingIds = schedule.resources.map((r) => r.id);
             const newId = uniqueId(toKebab(name), existingIds);
@@ -725,9 +767,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                 { id: newId, name, kind: resourceKind, capacity: n, roles: [] },
               ],
             };
-            updateSchedule(updated);
-            setStatusMsg(`Added resource "${name}"`);
-            setScreen({ kind: 'edit-resources' });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Added resource "${name}"` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } });
           }}
         />
       </Box>
@@ -747,8 +788,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Select
           options={[...resourceOptions, { label: '< Back', value: 'back' }]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'edit-resources' }); return; }
-            setScreen({ kind: 'edit-resource-field-select', resourceIndex: parseInt(val, 10) });
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } }); return; }
+            dispatch({ type: 'NAV', screen: { kind: 'edit-resource-field-select', resourceIndex: parseInt(val, 10) } });
           }}
         />
       </Box>
@@ -772,10 +813,10 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: '< Back', value: 'back' },
           ]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'edit-resource-select' }); return; }
-            if (val === 'name') { setScreen({ kind: 'edit-resource-name', resourceIndex }); }
-            else if (val === 'kind') { setScreen({ kind: 'edit-resource-kind', resourceIndex }); }
-            else if (val === 'capacity') { setScreen({ kind: 'edit-resource-capacity', resourceIndex }); }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-select' } }); return; }
+            if (val === 'name') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-name', resourceIndex } }); }
+            else if (val === 'kind') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-kind', resourceIndex } }); }
+            else if (val === 'capacity') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-capacity', resourceIndex } }); }
           }}
         />
       </Box>
@@ -791,20 +832,19 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>Edit "{resource.name}" — name:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${resourceIndex}`}
           defaultValue={resource.name}
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Name cannot be empty'); return; }
-            setInputError(null);
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Name cannot be empty' }); return; }
             const updated: ScheduleInput = {
               ...schedule,
               resources: schedule.resources.map((r, i) =>
                 i === resourceIndex ? { ...r, name: trimmed } : r
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(`Updated resource name to "${trimmed}"`);
-            setScreen({ kind: 'edit-resource-field-select', resourceIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Updated resource name to "${trimmed}"` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-resource-field-select', resourceIndex } });
           }}
         />
       </Box>
@@ -826,7 +866,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: '< Back', value: 'back' },
           ]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'edit-resource-field-select', resourceIndex }); return; }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resource-field-select', resourceIndex } }); return; }
             const updated: ScheduleInput = {
               ...schedule,
               resources: schedule.resources.map((r, i) =>
@@ -835,9 +875,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                   : r
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(`Updated kind to ${val}`);
-            setScreen({ kind: 'edit-resource-field-select', resourceIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Updated kind to ${val}` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-resource-field-select', resourceIndex } });
           }}
         />
       </Box>
@@ -853,20 +892,19 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>Edit "{resource.name}" — capacity:</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${resourceIndex}`}
           defaultValue={String(resource.capacity)}
           onSubmit={(val) => {
             const n = parseInt(val.trim(), 10);
-            if (isNaN(n) || n <= 0) { setInputError('Enter a positive integer'); return; }
-            setInputError(null);
+            if (isNaN(n) || n <= 0) { dispatch({ type: 'ERROR', msg: 'Enter a positive integer' }); return; }
             const updated: ScheduleInput = {
               ...schedule,
               resources: schedule.resources.map((r, i) =>
                 i === resourceIndex ? { ...r, capacity: n } : r
               ),
             };
-            updateSchedule(updated);
-            setStatusMsg(`Updated capacity to ${n}`);
-            setScreen({ kind: 'edit-resource-field-select', resourceIndex });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Updated capacity to ${n}` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-resource-field-select', resourceIndex } });
           }}
         />
       </Box>
@@ -887,12 +925,11 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Select
           options={[...resourceOptions, { label: '< Back', value: 'back' }]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'edit-resources' }); return; }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } }); return; }
             const idx = parseInt(val, 10);
             const removedId = schedule.resources[idx].id;
             const removedName = schedule.resources[idx].name;
 
-            // Remove resource and clean up resourceNeeds across all steps
             const updatedSteps = schedule.steps.map((s) => ({
               ...s,
               resourceNeeds: s.resourceNeeds.filter((r) => r.resourceId !== removedId),
@@ -902,9 +939,8 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
               resources: schedule.resources.filter((_, i) => i !== idx),
               steps: updatedSteps,
             };
-            updateSchedule(updated);
-            setStatusMsg(`Removed resource "${removedName}"`);
-            setScreen({ kind: 'edit-resources' });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Removed resource "${removedName}"` });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-resources' } });
           }}
         />
       </Box>
@@ -931,16 +967,15 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             { label: '< Back', value: 'back' },
           ]}
           onChange={(val) => {
-            if (val === 'back') { setScreen({ kind: 'main-menu' }); return; }
+            if (val === 'back') { dispatch({ type: 'NAV', screen: { kind: 'main-menu' } }); return; }
             if (val === 'clear') {
               const updated: ScheduleInput = { ...schedule };
               delete updated.timeConstraint;
-              updateSchedule(updated);
-              setStatusMsg('Cleared time constraint');
-              setScreen({ kind: 'main-menu' });
+              dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: 'Cleared time constraint' });
+              dispatch({ type: 'NAV', screen: { kind: 'main-menu' } });
               return;
             }
-            setScreen({ kind: 'edit-time-constraint-value', constraintType: val as 'startTime' | 'endTime' });
+            dispatch({ type: 'NAV', screen: { kind: 'edit-time-constraint-value', constraintType: val as 'startTime' | 'endTime' } });
           }}
         />
       </Box>
@@ -958,21 +993,20 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text bold>{label} (ISO 8601, e.g. 2026-02-18T17:00:00):</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key={`${screen.kind}-${constraintType}`}
           defaultValue={existing}
           placeholder="2026-02-18T17:00:00"
           onSubmit={(val) => {
             const trimmed = val.trim();
-            if (!trimmed) { setInputError('Time value cannot be empty'); return; }
-            setInputError(null);
+            if (!trimmed) { dispatch({ type: 'ERROR', msg: 'Time value cannot be empty' }); return; }
             const updated: ScheduleInput = {
               ...schedule,
               timeConstraint: constraintType === 'startTime'
                 ? { startTime: trimmed }
                 : { endTime: trimmed },
             };
-            updateSchedule(updated);
-            setStatusMsg(`Set ${label} to ${trimmed}`);
-            setScreen({ kind: 'main-menu' });
+            dispatch({ type: 'UPDATE_SCHEDULE', schedule: updated, statusMsg: `Set ${label} to ${trimmed}` });
+            dispatch({ type: 'NAV', screen: { kind: 'main-menu' } });
           }}
         />
       </Box>
@@ -1000,12 +1034,12 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
                 fs.writeFileSync(path.resolve(originalFile), JSON.stringify(schedule, null, 2));
                 exit();
               } catch (e) {
-                setInputError(`Failed to write file: ${(e as Error).message}`);
+                dispatch({ type: 'ERROR', msg: `Failed to write file: ${(e as Error).message}` });
               }
               return;
             }
             if (val === 'new-file') {
-              setScreen({ kind: 'save-new-file' });
+              dispatch({ type: 'NAV', screen: { kind: 'save-new-file' } });
             }
           }}
         />
@@ -1023,6 +1057,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
         <Text dimColor>Default: {suggested}</Text>
         {inputError && <Text color="red">{inputError}</Text>}
         <TextInput
+          key="save-new-file"
           defaultValue={suggested}
           onSubmit={(val) => {
             const trimmed = val.trim() || suggested;
@@ -1031,7 +1066,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
               fs.writeFileSync(outPath, JSON.stringify(schedule, null, 2));
               exit();
             } catch (e) {
-              setInputError(`Failed to write file: ${(e as Error).message}`);
+              dispatch({ type: 'ERROR', msg: `Failed to write file: ${(e as Error).message}` });
             }
           }}
         />
