@@ -1,4 +1,4 @@
-import type { SolvedSchedule, SolvedStep } from '../index.js';
+import type { SolvedScheduleResult, SolvedStepResult } from './engine.js';
 import type { ScheduleInput } from './schema.js';
 
 export interface RenderOptions {
@@ -27,7 +27,7 @@ function formatWallClock(isoStr: string): string {
 }
 
 export function renderGantt(
-  schedule: SolvedSchedule,
+  schedule: SolvedScheduleResult,
   template: ScheduleInput,
   options: RenderOptions,
 ): string {

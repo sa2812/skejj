@@ -1,4 +1,4 @@
-import type { SolvedSchedule } from '../../index.js';
+import type { SolvedScheduleResult } from '../engine.js';
 import type { ScheduleInput } from '../schema.js';
 
 /**
@@ -13,7 +13,7 @@ import type { ScheduleInput } from '../schema.js';
  * Task IDs are sanitized: non-alphanumeric characters replaced with `_`.
  * Duration format: `Xm` (e.g., `30m`) -- Mermaid only recognizes `Xm` for minutes.
  */
-export function renderMermaidGantt(schedule: SolvedSchedule, template: ScheduleInput): string {
+export function renderMermaidGantt(schedule: SolvedScheduleResult, template: ScheduleInput): string {
   const sorted = [...schedule.solvedSteps].sort(
     (a, b) => a.startOffsetMins - b.startOffsetMins,
   );

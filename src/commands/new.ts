@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
@@ -6,10 +5,7 @@ import React from 'react';
 import { renderGantt } from '../renderer.js';
 import type { ScheduleInput } from '../schema.js';
 import type { WizardAppProps } from '../ui/WizardApp.js';
-
-// Import napi bindings via createRequire to load CJS .node module from ESM context
-const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index.js');
+import { solve } from '../engine.js';
 
 export const newCommand = new Command('new')
   .description('Guided wizard to create a new schedule')
@@ -48,9 +44,8 @@ export const newCommand = new Command('new')
       // 1. Write JSON to CWD
       fs.writeFileSync(fullPath, JSON.stringify(schedule, null, 2));
 
-      // 2. Auto-solve using napi bindings
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const solvedResult = bindings.solve(schedule as any);
+      // 2. Auto-solve using engine
+      const solvedResult = solve(schedule);
 
       // 3. Display the Gantt chart inline
       const gantt = renderGantt(solvedResult, schedule, {

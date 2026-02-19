@@ -1,4 +1,4 @@
-import type { SolvedSchedule } from '../../index.js';
+import type { SolvedScheduleResult } from '../engine.js';
 import type { ScheduleInput } from '../schema.js';
 
 /**
@@ -6,6 +6,6 @@ import type { ScheduleInput } from '../schema.js';
  *
  * Returns the full SolvedSchedule object serialized with 2-space indentation.
  */
-export function renderJson(schedule: SolvedSchedule, _template: ScheduleInput): string {
+export function renderJson(schedule: SolvedScheduleResult, _template: ScheduleInput): string {
   return JSON.stringify(schedule, null, 2);
 }

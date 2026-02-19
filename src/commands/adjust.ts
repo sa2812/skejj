@@ -1,12 +1,8 @@
-import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import React from 'react';
 import { loadSchedule } from '../loader.js';
 import type { AdjustAppProps } from '../ui/AdjustApp.js';
-
-// Import napi bindings via createRequire to load CJS .node module from ESM context
-const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index.js');
+import { solve } from '../engine.js';
 
 export const adjustCommand = new Command('adjust')
   .description('Interactively adjust a solved schedule in a re-solve loop')
@@ -26,8 +22,7 @@ export const adjustCommand = new Command('adjust')
     }
 
     // Initial solve
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const solvedResult = bindings.solve(loaded.data as any);
+    const solvedResult = solve(loaded.data);
 
     // Dynamic imports: Ink and AdjustApp are ESM-only
     const { render } = await import('ink');

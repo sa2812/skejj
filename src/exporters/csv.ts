@@ -1,4 +1,4 @@
-import type { SolvedSchedule } from '../../index.js';
+import type { SolvedScheduleResult } from '../engine.js';
 import type { ScheduleInput } from '../schema.js';
 
 /**
@@ -14,7 +14,7 @@ import type { ScheduleInput } from '../schema.js';
  * - Rows sorted by startOffsetMins ascending.
  * - Lines terminated with \n (Unix line endings).
  */
-export function renderCsv(schedule: SolvedSchedule, template: ScheduleInput): string {
+export function renderCsv(schedule: SolvedScheduleResult, template: ScheduleInput): string {
   const headers = [
     'stepId',
     'title',

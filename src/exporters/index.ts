@@ -1,4 +1,4 @@
-import type { SolvedSchedule } from '../../index.js';
+import type { SolvedScheduleResult } from '../engine.js';
 import type { ScheduleInput } from '../schema.js';
 import { renderMermaidGantt } from './mermaid.js';
 import { renderCsv } from './csv.js';
@@ -28,7 +28,7 @@ export const FORMAT_EXTENSIONS: Record<FormatName, string> = {
  */
 export function exportSchedule(
   format: FormatName,
-  schedule: SolvedSchedule,
+  schedule: SolvedScheduleResult,
   template: ScheduleInput,
 ): string {
   switch (format) {

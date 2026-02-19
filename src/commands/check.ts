@@ -1,10 +1,6 @@
-import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import { loadSchedule } from '../loader.js';
-
-// Import napi bindings via createRequire to load CJS .node module from ESM context
-const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index.js');
+import { validate } from '../engine.js';
 
 export const checkCommand = new Command('check')
   .description('Validate a schedule file without solving')
@@ -18,8 +14,7 @@ export const checkCommand = new Command('check')
       process.exit(1);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = bindings.validate(loaded.data as any);
+    const result = validate(loaded.data);
 
     if (result.errors.length > 0) {
       console.error('Errors:');

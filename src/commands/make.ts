@@ -1,14 +1,10 @@
-import { createRequire } from 'node:module';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
 import { loadSchedule } from '../loader.js';
 import { renderGantt } from '../renderer.js';
 import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
-
-// Import napi bindings via createRequire to load CJS .node module from ESM context
-const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index.js');
+import { solve } from '../engine.js';
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];
 
@@ -27,9 +23,7 @@ export const makeCommand = new Command('make')
     }
 
     try {
-      // The Zod-inferred type and napi type are structurally identical
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = bindings.solve(loaded.data as any);
+      const result = solve(loaded.data);
 
       // ASCII Gantt always prints to terminal (stdout), regardless of --format
       const asciiOutput = renderGantt(result, loaded.data, {

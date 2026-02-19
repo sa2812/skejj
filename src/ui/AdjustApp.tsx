@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import React, { useState, useCallback } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { TextInput, Select, MultiSelect } from '@inkjs/ui';
@@ -6,11 +5,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { ScheduleInput } from '../schema.js';
 import { renderGantt } from '../renderer.js';
-import type { SolvedSchedule } from '../../index.js';
-
-// Import napi bindings via createRequire to load CJS .node module from ESM context
-const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index.js');
+import { solve } from '../engine.js';
+import type { SolvedScheduleResult } from '../engine.js';
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -66,7 +62,7 @@ type AdjustScreen =
 
 export interface AdjustAppProps {
   initialSchedule: ScheduleInput;
-  initialSolved: SolvedSchedule;
+  initialSolved: SolvedScheduleResult;
   originalFile: string;
 }
 
@@ -77,7 +73,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
 
   const [screen, setScreen] = useState<AdjustScreen>({ kind: 'main-menu' });
   const [schedule, setSchedule] = useState<ScheduleInput>(initialSchedule);
-  const [solved, setSolved] = useState<SolvedSchedule>(initialSolved);
+  const [solved, setSolved] = useState<SolvedScheduleResult>(initialSolved);
   const [solveError, setSolveError] = useState<string | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -86,8 +82,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
 
   const resolveSchedule = useCallback((updated: ScheduleInput) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = bindings.solve(updated as any);
+      const result = solve(updated);
       setSolved(result);
       setSolveError(null);
     } catch (e) {

@@ -7,7 +7,6 @@
  *   -f, --format <type>    Export format: gantt, csv, json (same as skejj make)
  */
 
-import { createRequire } from 'node:module';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
@@ -16,10 +15,7 @@ import { buildModel } from '../ai/provider.js';
 import { generateScheduleFromText } from '../ai/generate.js';
 import { renderGantt } from '../renderer.js';
 import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
-
-// Import napi bindings via createRequire to load CJS .node module from ESM context
-const require = createRequire(import.meta.url);
-const bindings = require('../../index') as typeof import('../../index.js');
+import { solve } from '../engine.js';
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];
 
@@ -132,11 +128,10 @@ export const generateCommand = new Command('generate')
       // 7. Write JSON to CWD
       fs.writeFileSync(jsonPath, JSON.stringify(scheduleInput, null, 2));
 
-      // 8. Auto-solve using napi bindings
+      // 8. Auto-solve using engine
       let solvedResult;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        solvedResult = bindings.solve(scheduleInput as any);
+        solvedResult = solve(scheduleInput);
       } catch (e) {
         console.error(`Error solving schedule: ${(e as Error).message}`);
         process.exit(1);
