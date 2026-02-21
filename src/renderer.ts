@@ -190,7 +190,12 @@ export function renderGantt(
   options: RenderOptions,
 ): string {
   const lines: string[] = [];
-  const { solvedSteps, summary, warnings } = schedule;
+  const { solvedSteps, summary } = schedule;
+  const hasOverrides = options.overrides != null && Object.keys(options.overrides).length > 0;
+  // Filter out "Inventory override:" warnings from Rust when the resource table is shown
+  const warnings = hasOverrides
+    ? schedule.warnings.filter(w => !w.startsWith('Inventory override:'))
+    : schedule.warnings;
   const totalMins = summary.totalDurationMins;
 
   // Chalk instance — level 0 = plain text (no ANSI)
@@ -202,6 +207,7 @@ export function renderGantt(
   const sepColor    = (s: string) => c.dim(s);
   const gridColor   = (s: string) => c.dim(s);
   const headerColor = (s: string) => c.bold(s);
+  const labelColor  = (s: string) => c.cyan(s);
   const warnColor   = (s: string) => c.yellow(s);
 
   // Track color palette — color by track index, not criticality
@@ -486,6 +492,57 @@ export function renderGantt(
     lines.push('');
     lines.push(warnColor('--- Warnings ---'));
     for (const w of warnings) lines.push(`  - ${warnColor(w)}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Resource table — only rendered when overrides are active
+  // ---------------------------------------------------------------------------
+
+  if (hasOverrides && options.overrides) {
+    const overrides = options.overrides;
+    const templateResources = template.resources ?? [];
+
+    if (templateResources.length > 0) {
+      lines.push('');
+      lines.push(headerColor('--- Resources ---'));
+
+      for (const res of templateResources) {
+        const overriddenCapacity = overrides[res.name];
+        const hasOverride = overriddenCapacity !== undefined;
+
+        if (hasOverride) {
+          // Overridden resource: show "name: original -> new"
+          const baseLabel = `  ${res.name}:`;
+          const arrowPart = `${res.capacity} -> ${overriddenCapacity}`;
+
+          if (res.kind === 'Consumable') {
+            // Calculate total consumed from solved steps
+            let totalConsumed = 0;
+            for (const step of solvedSteps) {
+              for (const ar of step.assignedResources) {
+                if (ar.resourceId === res.id) {
+                  totalConsumed += ar.quantityUsed;
+                }
+              }
+            }
+            const remaining = overriddenCapacity - totalConsumed;
+
+            if (remaining >= 0) {
+              lines.push(`${labelColor(baseLabel)} ${arrowPart} (${remaining} remaining)`);
+            } else {
+              lines.push(`${labelColor(baseLabel)} ${arrowPart}`);
+              lines.push('');
+              lines.push(warnColor(`  Warning: ${res.name}: ${totalConsumed} needed but only ${overriddenCapacity} available (shortfall: ${Math.abs(remaining)})`));
+            }
+          } else {
+            lines.push(`${labelColor(baseLabel)} ${arrowPart}`);
+          }
+        } else {
+          // Non-overridden resource: show "name: capacity"
+          lines.push(`${labelColor(`  ${res.name}:`)} ${res.capacity}`);
+        }
+      }
+    }
   }
 
   return lines.join('\n');
