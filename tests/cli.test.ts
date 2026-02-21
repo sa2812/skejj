@@ -55,9 +55,8 @@ describe('skejj CLI', () => {
     // Step titles should appear
     expect(result.stdout).toContain('Roast chicken');
     expect(result.stdout).toContain('Prep chicken');
-    // Summary section
-    expect(result.stdout).toContain('Summary');
-    expect(result.stdout).toContain('Critical path');
+    // Summary line
+    expect(result.stdout).toMatch(/Total:.*\d+[hm]/);
   });
 
   // -------------------------------------------------------------------------
@@ -154,8 +153,8 @@ describe('skejj CLI', () => {
     // Step titles should appear
     expect(result.stdout).toContain('Step A');
     expect(result.stdout).toContain('Step B');
-    // Summary section
-    expect(result.stdout).toContain('Summary');
+    // Summary line
+    expect(result.stdout).toMatch(/Total:/);
   });
 
   // -------------------------------------------------------------------------

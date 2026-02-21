@@ -80,12 +80,15 @@ describe('renderer golden fixtures', () => {
   it('120-col bars are wider than 80-col bars', () => {
     const output80 = renderExample('roast-chicken.json', { width: 80 });
     const output120 = renderExample('roast-chicken.json', { width: 120 });
-    // The roast chicken bar at 120 cols should be longer than at 80 cols
-    // Count the full-block chars on the roast chicken line
-    const roastLine80 = output80.split('\n').find((l) => l.startsWith('Roast chicken')) ?? '';
-    const roastLine120 = output120.split('\n').find((l) => l.startsWith('Roast chicken')) ?? '';
-    const blocks80 = (roastLine80.match(/█/g) ?? []).length;
-    const blocks120 = (roastLine120.match(/█/g) ?? []).length;
+    // In two-line layout, header line contains step name, bar is the next line
+    const lines80 = output80.split('\n');
+    const headerIdx80 = lines80.findIndex((l) => l.includes('Roast chicken'));
+    const barLine80 = headerIdx80 >= 0 ? lines80[headerIdx80 + 1] : '';
+    const lines120 = output120.split('\n');
+    const headerIdx120 = lines120.findIndex((l) => l.includes('Roast chicken'));
+    const barLine120 = headerIdx120 >= 0 ? lines120[headerIdx120 + 1] : '';
+    const blocks80 = (barLine80.match(/█/g) ?? []).length;
+    const blocks120 = (barLine120.match(/█/g) ?? []).length;
     expect(blocks120).toBeGreaterThan(blocks80);
   });
 });
