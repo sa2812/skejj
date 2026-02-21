@@ -14,6 +14,16 @@ const FULL_BLOCK  = _unicode ? '\u2588' : '#';   // █
 const GRID_CHAR   = _unicode ? '\u2502' : '|';   // │
 const H_RULE      = _unicode ? '\u2500' : '-';   // ─
 
+// Connector box-drawing characters (used for --arrows gutter)
+const CONN_TL    = _unicode ? '\u250C' : '+';   // ┌ top-left corner
+const CONN_TR    = _unicode ? '\u2510' : '+';   // ┐ top-right corner
+const CONN_BL    = _unicode ? '\u2514' : '+';   // └ bottom-left corner
+const CONN_BR    = _unicode ? '\u2518' : '+';   // ┘ bottom-right corner
+const CONN_LT    = _unicode ? '\u251C' : '|';   // ├ left T-junction
+const CONN_RT    = _unicode ? '\u2524' : '|';   // ┤ right T-junction
+const CONN_CROSS = _unicode ? '\u253C' : '+';   // ┼ cross
+const GUTTER_WIDTH = 3;
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -24,6 +34,7 @@ export interface RenderOptions {
   colorLevel: 0 | 1 | 2 | 3;
   overrides?: Record<string, number>;
   suggestions?: SuggestionsBlock | null;  // null or undefined = suppressed
+  showArrows?: boolean;  // show dependency connector lines in gutter column
 }
 
 export function detectColorLevel(): 0 | 1 | 2 | 3 {
@@ -183,6 +194,188 @@ function buildTimeAxis(
 }
 
 // ---------------------------------------------------------------------------
+// Connector algorithm helpers (used when showArrows is true)
+// ---------------------------------------------------------------------------
+
+interface GutterCell {
+  up: boolean;
+  down: boolean;
+  left: boolean;
+  right: boolean;
+}
+
+type GutterGrid = GutterCell[][];
+
+/**
+ * Map direction bitmask to a box-drawing character.
+ * Bitmask: bit3=up, bit2=down, bit1=left, bit0=right
+ */
+function gutterCharForDirections(up: boolean, down: boolean, left: boolean, right: boolean): string {
+  const key = (up ? 8 : 0) | (down ? 4 : 0) | (left ? 2 : 0) | (right ? 1 : 0);
+  const charMap: Record<number, string> = {
+    0b0100: GRID_CHAR,   // down only:       |
+    0b1000: GRID_CHAR,   // up only:         |
+    0b1100: GRID_CHAR,   // up+down:         |
+    0b0110: CONN_TR,     // down+left:       top-right corner
+    0b1010: CONN_BR,     // up+left:         bottom-right corner
+    0b1110: CONN_RT,     // up+down+left:    right T-junction
+    0b0101: CONN_TL,     // down+right:      top-left corner
+    0b1001: CONN_BL,     // up+right:        bottom-left corner
+    0b1101: CONN_LT,     // up+down+right:   left T-junction
+    0b0011: H_RULE,      // left+right:      horizontal
+    0b1111: CONN_CROSS,  // all four:        cross
+  };
+  return charMap[key] ?? ' ';
+}
+
+/**
+ * Build a row-index map for steps in the rendered output.
+ * Returns Map<stepId, barRowIndex> where barRowIndex is the 0-based row
+ * index of that step's BAR line (not header line).
+ * Must mirror the exact iteration order of the renderGantt loop.
+ * Layout per step: header row (+0), bar row (+1), blank line (+2) = 3 rows per step.
+ * Separator rows add 1 row per non-empty track group.
+ */
+function buildRowMap(
+  chunkSteps: SolvedStepResult[],
+  template: ScheduleInput,
+): { rowOf: Map<string, number>; totalRows: number } {
+  const rowOf = new Map<string, number>();
+  let row = 0;
+  const hasTracks = template.tracks && template.tracks.length > 1;
+
+  if (hasTracks) {
+    const trackOrder = template.tracks.map((t) => t.id);
+    const byTrack = new Map<string, SolvedStepResult[]>();
+    for (const trackId of trackOrder) byTrack.set(trackId, []);
+    const noTrack: SolvedStepResult[] = [];
+
+    for (const ss of chunkSteps) {
+      const tmpl = template.steps.find((s) => s.id === ss.stepId);
+      const trackId = (tmpl as { trackId?: string })?.trackId;
+      if (trackId && byTrack.has(trackId)) {
+        byTrack.get(trackId)!.push(ss);
+      } else {
+        noTrack.push(ss);
+      }
+    }
+
+    for (const track of template.tracks) {
+      const trackSteps = byTrack.get(track.id) ?? [];
+      if (trackSteps.length === 0) continue;
+      row++;  // separator row
+      for (const ss of trackSteps) {
+        row++;  // header row
+        rowOf.set(ss.stepId, row);  // bar row index
+        row++;  // bar row counted
+        row++;  // blank line
+      }
+    }
+    for (const ss of noTrack) {
+      row++;  // header row
+      rowOf.set(ss.stepId, row);
+      row++;
+      row++;  // blank line
+    }
+  } else {
+    for (const ss of chunkSteps) {
+      row++;  // header row
+      rowOf.set(ss.stepId, row);  // bar row index
+      row++;
+      row++;  // blank line
+    }
+  }
+
+  return { rowOf, totalRows: row };
+}
+
+/**
+ * Build the gutter grid for a set of edges and row positions.
+ * Only edges where BOTH pred and succ appear in rowOf are drawn.
+ */
+function buildGutterGrid(
+  edges: Array<{ predId: string; succId: string }>,
+  rowOf: Map<string, number>,
+  totalRows: number,
+): GutterGrid {
+  const grid: GutterGrid = Array.from({ length: totalRows }, () =>
+    Array.from({ length: GUTTER_WIDTH }, () => ({ up: false, down: false, left: false, right: false }))
+  );
+
+  // Lane occupancy: laneOccupancy[lane][row] = true if a connector uses this lane at this row
+  const numLanes = GUTTER_WIDTH - 1;  // lanes 0 and 1; col 2 is turn/exit column
+  const laneOccupancy: boolean[][] = Array.from({ length: numLanes }, () =>
+    new Array(totalRows).fill(false)
+  );
+
+  for (const { predId, succId } of edges) {
+    const predRow = rowOf.get(predId);
+    const succRow = rowOf.get(succId);
+    if (predRow == null || succRow == null) continue;
+    if (predRow === succRow) continue;
+
+    const topRow = Math.min(predRow, succRow);
+    const bottomRow = Math.max(predRow, succRow);
+
+    // Assign lane: find first lane with no conflict in [topRow, bottomRow]
+    let lane = 0;
+    let assigned = false;
+    for (let l = 0; l < numLanes; l++) {
+      const hasConflict = laneOccupancy[l].slice(topRow, bottomRow + 1).some((v) => v);
+      if (!hasConflict) {
+        lane = l;
+        assigned = true;
+        break;
+      }
+    }
+    if (!assigned) lane = 0;  // overflow: share lane 0, cross chars at intersections
+
+    // Mark lane occupancy for this vertical span
+    for (let r = topRow; r <= bottomRow; r++) {
+      laneOccupancy[lane][r] = true;
+    }
+
+    // Fill vertical segment in lane column
+    for (let r = topRow; r <= bottomRow; r++) {
+      if (r > topRow) grid[r][lane].up = true;
+      if (r < bottomRow) grid[r][lane].down = true;
+    }
+
+    // Horizontal connection: lane col -> turn col (col GUTTER_WIDTH-1 = col 2) -> exit right
+    grid[predRow][lane].right = true;
+    for (let c = lane + 1; c < GUTTER_WIDTH - 1; c++) {
+      grid[predRow][c].left = true;
+      grid[predRow][c].right = true;
+    }
+    grid[predRow][GUTTER_WIDTH - 1].right = true;
+
+    grid[succRow][lane].right = true;
+    for (let c = lane + 1; c < GUTTER_WIDTH - 1; c++) {
+      grid[succRow][c].left = true;
+      grid[succRow][c].right = true;
+    }
+    grid[succRow][GUTTER_WIDTH - 1].right = true;
+  }
+
+  return grid;
+}
+
+/**
+ * Render one row of the gutter grid as a dim-colored string (GUTTER_WIDTH chars wide).
+ */
+function renderGutterString(
+  gridRow: GutterCell[],
+  connColor: (s: string) => string,
+): string {
+  return gridRow
+    .map((cell) => {
+      const ch = gutterCharForDirections(cell.up, cell.down, cell.left, cell.right);
+      return ch === ' ' ? ' ' : connColor(ch);
+    })
+    .join('');
+}
+
+// ---------------------------------------------------------------------------
 // Main renderer
 // ---------------------------------------------------------------------------
 
@@ -223,6 +416,13 @@ export function renderGantt(
 
   // Clamp terminal width to a reasonable minimum
   const termWidth = Math.max(options.termWidth, 40);
+  const showArrows = options.showArrows ?? false;
+
+  // When arrows active, subtract gutter from bar area width
+  const barWidth = showArrows ? Math.max(termWidth - GUTTER_WIDTH, 10) : termWidth;
+
+  // Connector color (dim gray for all connector chars)
+  const connColor   = (s: string) => c.dim(s);
 
   // Sort steps by start offset
   const sorted = [...solvedSteps].sort((a, b) => a.startOffsetMins - b.startOffsetMins);
@@ -263,10 +463,9 @@ export function renderGantt(
   for (let t = 0; t <= totalMins; t += tickInterval) ticks.push(t);
   if (totalMins > 0 && ticks[ticks.length - 1] !== totalMins) ticks.push(totalMins);
 
-  // For full-width bars: barWidth equals termWidth (no label column)
-  // We keep a small labelColWidth for time axis only, but bars are full-width
-  // Check if split is needed (more than 30 mins per bar column when bars are termWidth wide)
-  const minsPerChar = totalMins > 0 ? totalMins / termWidth : 1;
+  // Check if split is needed (more than 30 mins per bar column)
+  // When arrows active, barWidth < termWidth — use barWidth for split decision
+  const minsPerChar = totalMins > 0 ? totalMins / barWidth : 1;
   const needsSplit = minsPerChar > 30;
 
   // Compute chunks for split rendering
@@ -279,8 +478,8 @@ export function renderGantt(
   if (!needsSplit || totalMins === 0) {
     chunks = [{ start: 0, end: totalMins }];
   } else {
-    // Each chunk covers termWidth * 30 minutes (bars are now full-width)
-    const chunkMins = termWidth * 30;
+    // Each chunk covers barWidth * 30 minutes
+    const chunkMins = barWidth * 30;
     const numChunks = Math.ceil(totalMins / chunkMins);
     chunks = [];
     for (let i = 0; i < numChunks; i++) {
@@ -305,6 +504,16 @@ export function renderGantt(
     }
   }
   lines.push('');
+
+  // Collect all explicit dependency edges (for --arrows mode)
+  const allEdges: Array<{ predId: string; succId: string }> = [];
+  if (showArrows) {
+    for (const step of template.steps) {
+      for (const dep of step.dependencies ?? []) {
+        allEdges.push({ predId: dep.stepId, succId: step.id });
+      }
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Render each chunk
@@ -338,21 +547,42 @@ export function renderGantt(
     if (chunkTicks[chunkTicks.length - 1] !== chunk.end) chunkTicks.push(chunk.end);
 
     const tickPositions = chunkTicks.map((t) =>
-      chunkMins > 0 ? Math.round(((t - chunk.start) / chunkMins) * termWidth) : 0,
+      chunkMins > 0 ? Math.round(((t - chunk.start) / chunkMins) * barWidth) : 0,
     );
     const tickLabels = chunkTicks.map((t) =>
       baseStartTime ? tickToWallClock(baseStartTime, t) : formatOffset(t),
     );
 
-    // Time axis — full-width (labelColWidth = 0, bars span full termWidth)
+    // Time axis — when arrows active, prepend GUTTER_WIDTH spaces to keep bar columns aligned
     if (totalMins > 0) {
-      lines.push(buildTimeAxis(0, tickPositions, tickLabels, termWidth));
+      const timeAxisLine = buildTimeAxis(0, tickPositions, tickLabels, barWidth);
+      if (showArrows) {
+        lines.push(' '.repeat(GUTTER_WIDTH) + timeAxisLine);
+      } else {
+        lines.push(timeAxisLine);
+      }
     }
 
     // Steps visible in this chunk (overlap with [chunk.start, chunk.end])
     const chunkSteps = sorted.filter(
       (s) => s.startOffsetMins < chunk.end && s.endOffsetMins > chunk.start,
     );
+
+    // Per-chunk gutter grid (only edges where both endpoints in same chunk)
+    let chunkRowOf = new Map<string, number>();
+    let chunkTotalRows = 0;
+    let gutterGrid: GutterGrid = [];
+    let chunkRow = 0;  // tracks current row within chunk for gutter indexing
+
+    if (showArrows && chunkSteps.length > 0) {
+      const chunkResult = buildRowMap(chunkSteps, template);
+      chunkRowOf = chunkResult.rowOf;
+      chunkTotalRows = chunkResult.totalRows;
+      const chunkEdges = allEdges.filter(
+        (e) => chunkRowOf.has(e.predId) && chunkRowOf.has(e.succId)
+      );
+      gutterGrid = buildGutterGrid(chunkEdges, chunkRowOf, chunkTotalRows);
+    }
 
     // Track grouping
     const hasTracks = template.tracks && template.tracks.length > 1;
@@ -380,32 +610,53 @@ export function renderGantt(
         const trackSteps = byTrack.get(track.id) ?? [];
         if (trackSteps.length === 0) continue;
 
-        // Track separator line — use stringWidth for correct fill length
-        const sepLabel = ` ${track.name} `;
-        const fillLen = Math.max(0, termWidth - stringWidth(sepLabel) - 1);
-        const sepLine = H_RULE.repeat(1) + sepLabel + H_RULE.repeat(fillLen);
-        lines.push(sepColor(sepLine));
+        // Track separator line
+        if (showArrows) {
+          // Prepend GUTTER_WIDTH spaces; separator spans bar area only
+          const sepLabel = ` ${track.name} `;
+          const fillLen = Math.max(0, barWidth - stringWidth(sepLabel) - 1);
+          const sepContent = H_RULE.repeat(1) + sepLabel + H_RULE.repeat(fillLen);
+          lines.push(' '.repeat(GUTTER_WIDTH) + sepColor(sepContent));
+        } else {
+          const sepLabel = ` ${track.name} `;
+          const fillLen = Math.max(0, termWidth - stringWidth(sepLabel) - 1);
+          const sepLine = H_RULE.repeat(1) + sepLabel + H_RULE.repeat(fillLen);
+          lines.push(sepColor(sepLine));
+        }
+        if (showArrows) chunkRow++;  // separator counts as one row in gutter grid
 
         const trackColorFn = trackColorMap.get(track.id) ?? noTrackColor;
         for (const step of trackSteps) {
-          const stepLines = renderStepLines(step, chunk, chunkMins, termWidth, tickPositions, trackColorFn);
+          const stepLines = renderStepLines(
+            step, chunk, chunkMins, barWidth, tickPositions, trackColorFn,
+            showArrows ? { gutterGrid, chunkRow } : undefined,
+          );
           lines.push(...stepLines);
           lines.push('');
+          if (showArrows) chunkRow += 3;  // header + bar + blank line
         }
       }
 
       // Untracked steps at the end
       for (const step of noTrack) {
-        const stepLines = renderStepLines(step, chunk, chunkMins, termWidth, tickPositions, noTrackColor);
+        const stepLines = renderStepLines(
+          step, chunk, chunkMins, barWidth, tickPositions, noTrackColor,
+          showArrows ? { gutterGrid, chunkRow } : undefined,
+        );
         lines.push(...stepLines);
         lines.push('');
+        if (showArrows) chunkRow += 3;
       }
     } else {
       // Single track or no tracks — render all steps directly
       for (const step of chunkSteps) {
-        const stepLines = renderStepLines(step, chunk, chunkMins, termWidth, tickPositions, noTrackColor);
+        const stepLines = renderStepLines(
+          step, chunk, chunkMins, barWidth, tickPositions, noTrackColor,
+          showArrows ? { gutterGrid, chunkRow } : undefined,
+        );
         lines.push(...stepLines);
         lines.push('');
+        if (showArrows) chunkRow += 3;
       }
     }
 
@@ -421,9 +672,10 @@ export function renderGantt(
     step: SolvedStepResult,
     chunk: TimeChunk,
     chunkMins: number,
-    termWidth: number,
+    effectiveBarWidth: number,
     tickPositions: number[],
     trackColorFn: (s: string) => string,
+    arrowCtx?: { gutterGrid: GutterGrid; chunkRow: number },
   ): string[] {
     const title = titleOf(step);
     const startLabel = baseStartTime
@@ -432,28 +684,34 @@ export function renderGantt(
     const durationMins = step.endOffsetMins - step.startOffsetMins;
     const flexMins = step.totalFloatMins;
 
+    // Header spans effectiveBarWidth (bar area only when arrows on)
+    const headerLineWidth = arrowCtx ? effectiveBarWidth : termWidth;
+
     // Line 1 (header): "HH:MM - Step Name" left, "duration (flex flex)" right
     const left = `${startLabel} - ${title}`;
     const right = flexMins > 0
       ? `${formatDuration(durationMins)} (${formatDuration(flexMins)} flex)`
       : formatDuration(durationMins);
     // Measure plain text for padding (never color before measuring)
-    const gap = Math.max(1, termWidth - stringWidth(left) - stringWidth(right));
-    const headerLine = left + ' '.repeat(gap) + right;
+    const gap = Math.max(1, headerLineWidth - stringWidth(left) - stringWidth(right));
+    const headerContent = left + ' '.repeat(gap) + right;
 
-    // Line 2 (bar): full-width bar spanning termWidth columns
+    // Line 2 (bar): bar spanning effectiveBarWidth columns
     const clippedStart = Math.max(step.startOffsetMins, chunk.start);
     const clippedEnd = Math.min(step.endOffsetMins, chunk.end);
 
-    let barStr: string;
+    let barContent: string;
+    let startPos = 0;
+    let endPos = 0;
+
     if (chunkMins === 0 || clippedEnd <= clippedStart) {
       // Step not visible in this chunk — show empty bar with gridlines only
-      const emptyChars = buildBarChars(termWidth, 0, 0, ' ', tickPositions);
-      barStr = emptyChars.map((ch) => ch === GRID_CHAR ? gridColor(ch) : ch).join('');
+      const emptyChars = buildBarChars(effectiveBarWidth, 0, 0, ' ', tickPositions);
+      barContent = emptyChars.map((ch) => ch === GRID_CHAR ? gridColor(ch) : ch).join('');
     } else {
-      const startPos = Math.round(((clippedStart - chunk.start) / chunkMins) * termWidth);
-      const endPos = Math.max(
-        Math.round(((clippedEnd - chunk.start) / chunkMins) * termWidth),
+      startPos = Math.round(((clippedStart - chunk.start) / chunkMins) * effectiveBarWidth);
+      endPos = Math.max(
+        Math.round(((clippedEnd - chunk.start) / chunkMins) * effectiveBarWidth),
         startPos + 1,
       );
 
@@ -461,11 +719,60 @@ export function renderGantt(
       const isWarned = warnedStepIds.has(step.stepId);
       const blockColorFn = isWarned ? dimBlock : trackColorFn;
 
-      const chars = buildBarChars(termWidth, startPos, endPos, FULL_BLOCK, tickPositions);
-      barStr = colorBarChars(chars, blockColorFn, gridColor);
+      const chars = buildBarChars(effectiveBarWidth, startPos, endPos, FULL_BLOCK, tickPositions);
+
+      // When arrows active, draw horizontal arms in bar area
+      // The turn column (col 2 in gutter) exits right — arm continues into bar area
+      // Successor arm: from col 0 to startPos-1 (empty space before bar start)
+      // Predecessor arm: from endPos to end of bar area (empty space after bar end)
+      if (arrowCtx && arrowCtx.gutterGrid.length > 0) {
+        const barRow = arrowCtx.chunkRow + 1;  // bar line = header row + 1
+        if (barRow < arrowCtx.gutterGrid.length) {
+          const turnCell = arrowCtx.gutterGrid[barRow]?.[GUTTER_WIDTH - 1];
+          if (turnCell?.right) {
+            // Successor arm: replace empty chars from col 0 to startPos
+            if (startPos > 0) {
+              for (let col = 0; col < startPos && col < effectiveBarWidth; col++) {
+                if (chars[col] === ' ' || chars[col] === GRID_CHAR) {
+                  chars[col] = H_RULE;
+                }
+              }
+            }
+            // Predecessor arm: replace empty chars from endPos to end of bar area
+            if (endPos < effectiveBarWidth) {
+              for (let col = endPos; col < effectiveBarWidth; col++) {
+                if (chars[col] === ' ' || chars[col] === GRID_CHAR) {
+                  chars[col] = H_RULE;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      barContent = colorBarChars(chars, blockColorFn, gridColor);
     }
 
-    return [headerLine, barStr];
+    // Assemble lines with optional gutter prefix
+    if (arrowCtx && arrowCtx.gutterGrid.length > 0) {
+      const barRow = arrowCtx.chunkRow + 1;
+
+      // Header line: gutter is spaces (connector chars only on bar rows)
+      const headerLine = ' '.repeat(GUTTER_WIDTH) + headerContent;
+
+      // Bar line: gutter connector chars + bar content
+      let barGutter: string;
+      if (barRow < arrowCtx.gutterGrid.length) {
+        barGutter = renderGutterString(arrowCtx.gutterGrid[barRow], connColor);
+      } else {
+        barGutter = ' '.repeat(GUTTER_WIDTH);
+      }
+      const barLine = barGutter + barContent;
+
+      return [headerLine, barLine];
+    } else {
+      return [headerContent, barContent];
+    }
   }
 
   // ---------------------------------------------------------------------------
