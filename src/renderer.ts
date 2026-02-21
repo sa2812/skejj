@@ -783,9 +783,21 @@ export function renderGantt(
     lines.push('');
     const totalStr = `Total: ${formatDuration(summary.totalDurationMins)}`;
     const resourceParts = (template.resources ?? [])
-      .map(res => ({ res, peak: computePeakUsage(solvedSteps, res.id) }))
-      .filter(({ peak }) => peak > 0)
-      .map(({ res, peak }) => `${res.name}: ${peak}/${res.capacity}`);
+      .map(res => {
+        const effectiveCap = options.overrides?.[res.name] ?? res.capacity;
+        if (res.kind === 'Consumable') {
+          let totalConsumed = 0;
+          for (const step of solvedSteps) {
+            for (const ar of step.assignedResources) {
+              if (ar.resourceId === res.id) totalConsumed += ar.quantityUsed;
+            }
+          }
+          return totalConsumed > 0 ? `${res.name}: ${totalConsumed}/${effectiveCap}` : null;
+        }
+        const peak = computePeakUsage(solvedSteps, res.id);
+        return peak > 0 ? `${res.name}: ${peak}/${effectiveCap}` : null;
+      })
+      .filter((part): part is string => part !== null);
     lines.push(
       resourceParts.length > 0
         ? `${totalStr} | ${resourceParts.join(', ')}`

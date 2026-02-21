@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-21)
 
 ## Current Position
 
-Phase: 11-resource-overrides (Plan 02 of 2 complete)
-Plan: 11-02 complete
-Status: Phase 11 fully complete — all plans executed and verified
-Last activity: 2026-02-21 — Completed 11-02-PLAN.md (resource CLI flag, table rendering, E2E tests)
+Phase: 12 of 13 (Dependency Arrows) — COMPLETE
+Plan: 1 of 1 in current phase
+Status: All v0.0.6 phases complete — Phase 12 (Dependency Arrows) is the final phase
+Last activity: 2026-02-21 — Completed 12-01-PLAN.md (--arrows connector rendering)
 
-Progress: [██████░░░░] 3/4 phases (v0.0.6 milestone)
+Progress: [██████████] 4/4 phases complete (v0.0.6 milestone — all phases done)
 
 ## Accumulated Context
 
@@ -24,13 +24,28 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Full v1.0 history archived in milestones/v1.0-ROADMAP.md.
 Full v0.1.1 history archived in milestones/v0.1.1-ROADMAP.md.
 
-**Phase 11-02 key decisions:**
+**Phase 11 decisions:**
 - `-r/--resource` uses Commander collect() for repeatable flags (not comma-separated)
 - Decimal override values Math.round()ed to integer for Rust engine (u32)
 - Duplicate flag warns stderr, uses last value (not error)
 - Resource table uses ASCII ` -> ` arrow notation, not Unicode
 - Resource table position: after warnings section
 - Consumable fixture uses FinishToStart sequential steps so remaining is predictable (200-120=80)
+- `consumable_remaining` reads from `resource_capacity` (post-override) not `r.capacity` (raw template value)
+
+**Phase 13 decisions:**
+- Bottleneck resource = non-consumable with highest sum(stepDurationMins * quantityUsed) across critical-path steps. Consumables excluded.
+- Time savings heuristic: longest critical-path step using bottleneck resource if >= 5 min.
+- `--output` flag omitted from reconstructed commands (file-output suppresses suggestions).
+- `resolvedResourceOverrides` Map takes priority over parsing `options.resource` strings (defensive compatibility).
+- Tip selection: top 2 by relevance score, third by `totalDurationMins % remainingTips.length` for deterministic rotation.
+
+**Phase 12 decisions:**
+- Horizontal arms extend rightward through empty space (not leftward through bar content)
+- Connector turns appear only on bar rows (second line of each step pair), not header rows
+- Track separator rows get GUTTER_WIDTH space prefix + reduced fill length (total = termWidth)
+- No density cap: render all edges; cross chars handle overflow when > 2 lanes needed
+- chunkRow tracking: 3 rows per step (header+bar+blank) + 1 per non-empty track separator
 
 ### Pending Todos
 
@@ -38,7 +53,8 @@ None.
 
 ### Blockers/Concerns
 
-- npm platform package binary (`@skejj/engine-darwin-arm64`) needs to be updated when publishing new releases — it cached the pre-RES-04 binary in node_modules. Current development works because the local file was updated. But running `npm install` fresh would pull the old binary again until a new release is published.
+- npm platform package binary (`@skejj/engine-darwin-arm64`) needs to be updated when publishing new releases — it cached the pre-RES-04 binary in node_modules.
+- v0.0.6 milestone is complete — all 4 phases (10, 11, 12, 13) done. Ready to bump version and release.
 
 ### Quick Tasks Completed
 
@@ -51,7 +67,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-21T22:30:00Z
-Stopped at: Completed 11-02-PLAN.md (all 3 tasks done, 40/40 tests passing)
+Last session: 2026-02-21
+Stopped at: Phase 12 complete — all v0.0.6 phases done, 40 tests passing
 Resume file: None
-Next action: Phase 12 (multi-day scheduling) or Phase 13 (suggestions) — check ROADMAP.md for v0.0.6 remaining phases
+Next action: `/gsd:new-milestone` to plan v0.0.6 release or next milestone
