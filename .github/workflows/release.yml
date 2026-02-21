@@ -107,14 +107,13 @@ jobs:
         run: |
           for platform in darwin-arm64 linux-x64 linux-arm64 win32-x64; do
             cd packages/engine-$platform
-            npm publish --access public
+            npm publish --access public 2>&1 || echo "⚠ engine-$platform publish failed (may already exist), continuing..."
             cd ../..
-            echo "Waiting 30s for npm registry to process..."
             sleep 30
           done
 
       - name: Build JS CLI
-        run: npm ci && npm run build
+        run: npm ci --omit=optional && npm run build
 
       - name: Publish main package
         env:
