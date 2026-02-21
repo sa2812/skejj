@@ -109,6 +109,8 @@ jobs:
             cd packages/engine-$platform
             npm publish --access public
             cd ../..
+            echo "Waiting 30s for npm registry to process..."
+            sleep 30
           done
 
       - name: Build JS CLI

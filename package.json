@@ -1,6 +1,6 @@
 {
   "name": "skejj",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simple schedules",
   "license": "MIT",
   "author": "sa2812",
@@ -50,10 +50,10 @@
     "zod": "^3.0.0"
   },
   "optionalDependencies": {
-    "@skejj/engine-darwin-arm64": "0.0.1",
-    "@skejj/engine-linux-arm64": "0.0.1",
-    "@skejj/engine-linux-x64": "0.0.1",
-    "@skejj/engine-win32-x64": "0.0.1"
+    "@skejj/engine-darwin-arm64": "0.0.2",
+    "@skejj/engine-linux-arm64": "0.0.2",
+    "@skejj/engine-linux-x64": "0.0.2",
+    "@skejj/engine-win32-x64": "0.0.2"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
