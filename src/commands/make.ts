@@ -33,7 +33,9 @@ Examples:
       const result = solve(loaded.data);
 
       // ASCII Gantt always prints to terminal (stdout), regardless of --format
-      const termWidth = options.width ?? (process.stdout.columns ?? 80);
+      const termWidth = options.width !== undefined
+        ? options.width
+        : Math.min(process.stdout.columns ?? 80, 80);
       const colorLevel = detectColorLevel();
       const asciiOutput = renderGantt(result, loaded.data, {
         quiet: options.quiet ?? false,

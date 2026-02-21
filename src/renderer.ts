@@ -10,7 +10,6 @@ import type { ScheduleInput } from './schema.js';
 
 const _unicode = isUnicodeSupported();
 const FULL_BLOCK  = _unicode ? '\u2588' : '#';   // █
-const LIGHT_BLOCK = _unicode ? '\u2591' : '-';   // ░
 const GRID_CHAR   = _unicode ? '\u2502' : '|';   // │
 const H_RULE      = _unicode ? '\u2500' : '-';   // ─
 
@@ -22,6 +21,7 @@ export interface RenderOptions {
   quiet: boolean;
   termWidth: number;
   colorLevel: 0 | 1 | 2 | 3;
+  overrides?: Record<string, number>;
 }
 
 export function detectColorLevel(): 0 | 1 | 2 | 3 {
@@ -47,12 +47,6 @@ function formatOffset(mins: number): string {
   return `+${h}:${m.toString().padStart(2, '0')}`;
 }
 
-function formatWallClock(isoStr: string): string {
-  const match = isoStr.match(/T(\d{2}:\d{2})/);
-  if (match) return match[1];
-  return isoStr;
-}
-
 /**
  * Compute wall-clock HH:MM for a given offset (minutes from schedule start).
  */
@@ -67,6 +61,29 @@ function tickToWallClock(baseIso: string, tickMins: number): string {
     return `${th.toString().padStart(2, '0')}:${tm.toString().padStart(2, '0')}`;
   }
   return formatOffset(tickMins);
+}
+
+// ---------------------------------------------------------------------------
+// Peak resource usage helper
+// ---------------------------------------------------------------------------
+
+function computePeakUsage(solvedSteps: SolvedStepResult[], resourceId: string): number {
+  const events: Array<[number, number]> = [];
+  for (const step of solvedSteps) {
+    for (const ar of step.assignedResources) {
+      if (ar.resourceId === resourceId) {
+        events.push([step.startOffsetMins, ar.quantityUsed]);
+        events.push([step.endOffsetMins, -ar.quantityUsed]);
+      }
+    }
+  }
+  events.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  let current = 0, peak = 0;
+  for (const [, delta] of events) {
+    current += delta;
+    if (current > peak) peak = current;
+  }
+  return peak;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,18 +155,23 @@ function colorBarChars(
  * Build the time axis line for a given time range.
  * tickPositions: column offsets within the bar area.
  * tickLabels: label for each tick.
- * labelColWidth: prefix width (label column + separator).
+ * labelColWidth: prefix width (label column + separator). Pass 0 for full-width bars.
+ * maxWidth: skip labels that would extend past this column.
  */
 function buildTimeAxis(
   labelColWidth: number,
   tickPositions: number[],
   tickLabels: string[],
+  maxWidth?: number,
 ): string {
-  const prefix = ' '.repeat(labelColWidth + 1);
+  const baseOffset = labelColWidth + (labelColWidth > 0 ? 1 : 0);
+  const prefix = ' '.repeat(baseOffset);
   let line = prefix;
   for (let i = 0; i < tickPositions.length; i++) {
-    const insertAt = labelColWidth + 1 + tickPositions[i];
+    const insertAt = baseOffset + tickPositions[i];
     const label = tickLabels[i];
+    // Skip labels that would extend past the max width
+    if (maxWidth != null && insertAt + stringWidth(label) > maxWidth) continue;
     if (insertAt > stringWidth(line)) {
       line = line + ' '.repeat(insertAt - stringWidth(line));
     }
@@ -175,14 +197,21 @@ export function renderGantt(
   const c = new Chalk({ level: options.colorLevel });
 
   // Color helpers (all measure-then-color: never color before padding)
-  const critical    = (s: string) => c.bold.red(s);
-  const nonCritical = (s: string) => c.cyan(s);
   const dimBlock    = (s: string) => c.dim.yellow(s);
-  const labelColor  = (s: string) => c.gray(s);
+  const descColor   = (s: string) => c.gray(s);
   const sepColor    = (s: string) => c.dim(s);
   const gridColor   = (s: string) => c.dim(s);
   const headerColor = (s: string) => c.bold(s);
   const warnColor   = (s: string) => c.yellow(s);
+
+  // Track color palette — color by track index, not criticality
+  const TRACK_PALETTE: Array<(s: string) => string> = [
+    (s: string) => c.yellow(s),
+    (s: string) => c.cyan(s),
+    (s: string) => c.green(s),
+    (s: string) => c.magenta(s),
+    (s: string) => c.blue(s),
+  ];
 
   // Clamp terminal width to a reasonable minimum
   const termWidth = Math.max(options.termWidth, 40);
@@ -204,12 +233,15 @@ export function renderGantt(
     }
   }
 
-  // Label column: cap at 40% of termWidth to keep bar area reasonable
-  const maxNameLen = sorted.length > 0
-    ? Math.max(...sorted.map((s) => titleOf(s).length), 4)
-    : 4;
-  const labelColWidth = Math.min(maxNameLen + 2, Math.floor(termWidth * 0.4));
-  const barWidth = Math.max(termWidth - labelColWidth - 1, 10);
+  // Build track color map: trackId -> color function
+  const trackColorMap = new Map<string, (s: string) => string>();
+  if (template.tracks) {
+    template.tracks.forEach((track, idx) => {
+      trackColorMap.set(track.id, TRACK_PALETTE[idx % TRACK_PALETTE.length]);
+    });
+  }
+  // Default color for steps with no track assignment
+  const noTrackColor = TRACK_PALETTE[(template.tracks?.length ?? 0) % TRACK_PALETTE.length];
 
   // Wall-clock base time (from first solved step's startTime if available)
   const hasWallClock = sorted.length > 0 && sorted[0].startTime != null;
@@ -223,8 +255,10 @@ export function renderGantt(
   for (let t = 0; t <= totalMins; t += tickInterval) ticks.push(t);
   if (totalMins > 0 && ticks[ticks.length - 1] !== totalMins) ticks.push(totalMins);
 
-  // Check if split is needed (more than 30 mins per bar column)
-  const minsPerChar = totalMins > 0 ? totalMins / barWidth : 1;
+  // For full-width bars: barWidth equals termWidth (no label column)
+  // We keep a small labelColWidth for time axis only, but bars are full-width
+  // Check if split is needed (more than 30 mins per bar column when bars are termWidth wide)
+  const minsPerChar = totalMins > 0 ? totalMins / termWidth : 1;
   const needsSplit = minsPerChar > 30;
 
   // Compute chunks for split rendering
@@ -237,8 +271,8 @@ export function renderGantt(
   if (!needsSplit || totalMins === 0) {
     chunks = [{ start: 0, end: totalMins }];
   } else {
-    // Each chunk covers barWidth * 30 minutes
-    const chunkMins = barWidth * 30;
+    // Each chunk covers termWidth * 30 minutes (bars are now full-width)
+    const chunkMins = termWidth * 30;
     const numChunks = Math.ceil(totalMins / chunkMins);
     chunks = [];
     for (let i = 0; i < numChunks; i++) {
@@ -255,7 +289,12 @@ export function renderGantt(
 
   lines.push(headerColor(template.name));
   if (template.description) {
-    lines.push(labelColor(template.description));
+    const desc = template.description;
+    if (stringWidth(desc) > termWidth) {
+      lines.push(descColor(desc.slice(0, termWidth - 1) + '\u2026'));
+    } else {
+      lines.push(descColor(desc));
+    }
   }
   lines.push('');
 
@@ -281,6 +320,7 @@ export function renderGantt(
     }
 
     // Compute tick positions and labels for this chunk
+    // Tick positions are now relative to termWidth (full-width bars)
     const chunkTicks: number[] = [];
     for (let t = 0; t <= totalMins; t += tickInterval) {
       if (t >= chunk.start && t <= chunk.end) chunkTicks.push(t);
@@ -290,15 +330,15 @@ export function renderGantt(
     if (chunkTicks[chunkTicks.length - 1] !== chunk.end) chunkTicks.push(chunk.end);
 
     const tickPositions = chunkTicks.map((t) =>
-      chunkMins > 0 ? Math.round(((t - chunk.start) / chunkMins) * barWidth) : 0,
+      chunkMins > 0 ? Math.round(((t - chunk.start) / chunkMins) * termWidth) : 0,
     );
     const tickLabels = chunkTicks.map((t) =>
       baseStartTime ? tickToWallClock(baseStartTime, t) : formatOffset(t),
     );
 
-    // Time axis
+    // Time axis — full-width (labelColWidth = 0, bars span full termWidth)
     if (totalMins > 0) {
-      lines.push(buildTimeAxis(labelColWidth, tickPositions, tickLabels));
+      lines.push(buildTimeAxis(0, tickPositions, tickLabels, termWidth));
     }
 
     // Steps visible in this chunk (overlap with [chunk.start, chunk.end])
@@ -332,25 +372,32 @@ export function renderGantt(
         const trackSteps = byTrack.get(track.id) ?? [];
         if (trackSteps.length === 0) continue;
 
-        // Track separator line
+        // Track separator line — use stringWidth for correct fill length
         const sepLabel = ` ${track.name} `;
-        const fillLen = Math.max(0, termWidth - sepLabel.length - 2);
+        const fillLen = Math.max(0, termWidth - stringWidth(sepLabel) - 1);
         const sepLine = H_RULE.repeat(1) + sepLabel + H_RULE.repeat(fillLen);
         lines.push(sepColor(sepLine));
 
+        const trackColorFn = trackColorMap.get(track.id) ?? noTrackColor;
         for (const step of trackSteps) {
-          lines.push(renderStepRow(step, chunk, chunkMins, barWidth, labelColWidth, tickPositions));
+          const stepLines = renderStepLines(step, chunk, chunkMins, termWidth, tickPositions, trackColorFn);
+          lines.push(...stepLines);
+          lines.push('');
         }
       }
 
       // Untracked steps at the end
       for (const step of noTrack) {
-        lines.push(renderStepRow(step, chunk, chunkMins, barWidth, labelColWidth, tickPositions));
+        const stepLines = renderStepLines(step, chunk, chunkMins, termWidth, tickPositions, noTrackColor);
+        lines.push(...stepLines);
+        lines.push('');
       }
     } else {
       // Single track or no tracks — render all steps directly
       for (const step of chunkSteps) {
-        lines.push(renderStepRow(step, chunk, chunkMins, barWidth, labelColWidth, tickPositions));
+        const stepLines = renderStepLines(step, chunk, chunkMins, termWidth, tickPositions, noTrackColor);
+        lines.push(...stepLines);
+        lines.push('');
       }
     }
 
@@ -358,106 +405,77 @@ export function renderGantt(
   }
 
   // ---------------------------------------------------------------------------
-  // Step row rendering helper (inner function to close over color helpers etc.)
+  // Step lines rendering helper (inner function to close over color helpers etc.)
+  // Returns two lines: [headerLine, barLine]
   // ---------------------------------------------------------------------------
 
-  function renderStepRow(
+  function renderStepLines(
     step: SolvedStepResult,
     chunk: TimeChunk,
     chunkMins: number,
-    barWidth: number,
-    labelColWidth: number,
+    termWidth: number,
     tickPositions: number[],
-  ): string {
+    trackColorFn: (s: string) => string,
+  ): string[] {
     const title = titleOf(step);
-    // Truncate label if it exceeds labelColWidth
-    const plainLabel = title.length > labelColWidth
-      ? title.slice(0, labelColWidth - 3) + '...'
-      : title.padEnd(labelColWidth);
+    const startLabel = baseStartTime
+      ? tickToWallClock(baseStartTime, step.startOffsetMins)
+      : formatOffset(step.startOffsetMins);
+    const durationMins = step.endOffsetMins - step.startOffsetMins;
+    const flexMins = step.totalFloatMins;
 
-    // Compute bar position clipped to chunk
+    // Line 1 (header): "HH:MM - Step Name" left, "duration (flex flex)" right
+    const left = `${startLabel} - ${title}`;
+    const right = flexMins > 0
+      ? `${formatDuration(durationMins)} (${formatDuration(flexMins)} flex)`
+      : formatDuration(durationMins);
+    // Measure plain text for padding (never color before measuring)
+    const gap = Math.max(1, termWidth - stringWidth(left) - stringWidth(right));
+    const headerLine = left + ' '.repeat(gap) + right;
+
+    // Line 2 (bar): full-width bar spanning termWidth columns
     const clippedStart = Math.max(step.startOffsetMins, chunk.start);
     const clippedEnd = Math.min(step.endOffsetMins, chunk.end);
 
     let barStr: string;
     if (chunkMins === 0 || clippedEnd <= clippedStart) {
-      // Step not visible in this chunk — show empty bar with gridlines
-      const emptyChars = buildBarChars(barWidth, 0, 0, ' ', tickPositions);
+      // Step not visible in this chunk — show empty bar with gridlines only
+      const emptyChars = buildBarChars(termWidth, 0, 0, ' ', tickPositions);
       barStr = emptyChars.map((ch) => ch === GRID_CHAR ? gridColor(ch) : ch).join('');
     } else {
-      const startPos = Math.round(((clippedStart - chunk.start) / chunkMins) * barWidth);
+      const startPos = Math.round(((clippedStart - chunk.start) / chunkMins) * termWidth);
       const endPos = Math.max(
-        Math.round(((clippedEnd - chunk.start) / chunkMins) * barWidth),
+        Math.round(((clippedEnd - chunk.start) / chunkMins) * termWidth),
         startPos + 1,
       );
 
-      // Choose block character and color based on critical path and warning status
+      // Warned steps use dim coloring; others use track color
       const isWarned = warnedStepIds.has(step.stepId);
-      const blockChar = step.isCritical ? FULL_BLOCK : LIGHT_BLOCK;
-      const blockColorFn = isWarned ? dimBlock : step.isCritical ? critical : nonCritical;
+      const blockColorFn = isWarned ? dimBlock : trackColorFn;
 
-      const chars = buildBarChars(barWidth, startPos, endPos, blockChar, tickPositions);
+      const chars = buildBarChars(termWidth, startPos, endPos, FULL_BLOCK, tickPositions);
       barStr = colorBarChars(chars, blockColorFn, gridColor);
     }
 
-    const coloredLabel = labelColor(plainLabel);
-    return `${coloredLabel} ${barStr}`;
+    return [headerLine, barStr];
   }
 
   // ---------------------------------------------------------------------------
-  // Summary section
+  // Summary section — one-line summary with peak resource usage
   // ---------------------------------------------------------------------------
 
   if (!options.quiet) {
     lines.push('');
-    lines.push(headerColor('--- Summary ---'));
-    lines.push(`Total time: ${formatDuration(summary.totalDurationMins)}`);
-    lines.push(`Steps: ${solvedSteps.length}`);
-
-    const criticalSteps = solvedSteps.filter((s) => s.isCritical);
-    const criticalDuration = criticalSteps.reduce(
-      (sum, s) => sum + (s.endOffsetMins - s.startOffsetMins),
-      0,
+    const totalStr = `Total: ${formatDuration(summary.totalDurationMins)}`;
+    const resourceParts = (template.resources ?? [])
+      .map(res => ({ res, peak: computePeakUsage(solvedSteps, res.id) }))
+      .filter(({ peak }) => peak > 0)
+      .map(({ res, peak }) => `${res.name}: ${peak}/${res.capacity}`);
+    lines.push(
+      resourceParts.length > 0
+        ? `${totalStr} | ${resourceParts.join(', ')}`
+        : totalStr
     );
-    lines.push(`Critical path: ${formatDuration(criticalDuration)} (${criticalSteps.length} step${criticalSteps.length === 1 ? '' : 's'})`);
-
-    const usedResources = new Set<string>();
-    for (const step of solvedSteps) {
-      for (const ar of step.assignedResources) usedResources.add(ar.resourceId);
-    }
-    if (usedResources.size > 0) {
-      const resourceNames = [...usedResources].map((id) => {
-        const r = template.resources.find((res) => res.id === id);
-        return r?.name ?? id;
-      });
-      lines.push(`Resources used: ${resourceNames.join(', ')}`);
-    }
-
-    lines.push('');
-    lines.push(headerColor('--- Critical Path ---'));
-    const criticalSorted = sorted.filter((s) => s.isCritical);
-    if (criticalSorted.length > 0) {
-      const cpChain = criticalSorted
-        .map((s) => titleOf(s))
-        .join(' -> ');
-      lines.push(critical(cpChain));
-      lines.push('');
-      lines.push('Float per step:');
-
-      for (const step of sorted) {
-        const name = titleOf(step);
-        const timeStr =
-          hasWallClock && step.startTime && step.endTime
-            ? `${formatWallClock(step.startTime)} -> ${formatWallClock(step.endTime)}`
-            : `${formatOffset(step.startOffsetMins)} -> ${formatOffset(step.endOffsetMins)}`;
-        const floatStr = step.isCritical
-          ? '0m (critical)'
-          : `${step.totalFloatMins}m slack`;
-        lines.push(`  ${name}: ${timeStr}  [${floatStr}]`);
-      }
-    } else {
-      lines.push('No critical path identified.');
-    }
   }
 
   // ---------------------------------------------------------------------------
