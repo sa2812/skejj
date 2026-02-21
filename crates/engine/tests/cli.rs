@@ -355,6 +355,19 @@ fn invalid_json_input() {
 // JSON with an unknown command value must be handled gracefully (ok:false).
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Test 9: solve_with_consumable_inventory_override
+// Proves the RES-04 bug fix: consumable_remaining now initializes from the
+// inventory-overridden resource_capacity, not from r.capacity.
+//
+// Setup: one consumable resource "dough" with template capacity 100.
+//        Two steps each consuming 80 units (total 160 > 100 → shortage).
+//
+// Without inventory: warnings must contain "may run out" for dough.
+// With inventory {"dough": 200}: 160 <= 200 so NO "may run out" warning,
+//   but an "Inventory override" warning IS expected.
+// ---------------------------------------------------------------------------
+
 #[test]
 fn unknown_command() {
     let input = r#"{
@@ -374,4 +387,112 @@ fn unknown_command() {
         .failure()
         .stdout(contains(r#""ok":false"#))
         .stdout(contains("error"));
+}
+
+#[test]
+fn solve_with_consumable_inventory_override() {
+    // Template: dough is Consumable with capacity 100.
+    // Two independent steps each needing 80 dough → total 160 > 100 → shortage without override.
+    let base_template = r#"{
+        "id": "t9",
+        "name": "ConsumableOverride",
+        "steps": [
+            {
+                "id": "step-a",
+                "title": "Mix A",
+                "durationMins": 20,
+                "dependencies": [],
+                "resourceNeeds": [
+                    { "resourceId": "dough", "quantity": 80 }
+                ]
+            },
+            {
+                "id": "step-b",
+                "title": "Mix B",
+                "durationMins": 20,
+                "dependencies": [],
+                "resourceNeeds": [
+                    { "resourceId": "dough", "quantity": 80 }
+                ]
+            }
+        ],
+        "tracks": [],
+        "resources": [
+            {
+                "id": "dough",
+                "name": "dough",
+                "kind": "Consumable",
+                "capacity": 100,
+                "roles": []
+            }
+        ]
+    }"#;
+
+    // -------------------------------------------------------------------------
+    // Without inventory: 80 + 80 = 160 > 100 → at least one "may run out" warning
+    // -------------------------------------------------------------------------
+    let input_no_inv = format!(r#"{{"command":"solve","template":{}}}"#, base_template);
+
+    let output_no_inv = cmd()
+        .write_stdin(input_no_inv)
+        .assert()
+        .success()
+        .stdout(contains(r#""ok":true"#))
+        .get_output()
+        .stdout
+        .clone();
+
+    let text_no_inv = String::from_utf8(output_no_inv).unwrap();
+    let parsed_no_inv: serde_json::Value = serde_json::from_str(&text_no_inv).unwrap();
+
+    let warnings_no_inv = parsed_no_inv["data"]["warnings"].as_array().unwrap();
+    let has_shortage = warnings_no_inv
+        .iter()
+        .any(|w| w.as_str().unwrap_or("").contains("may run out"));
+    assert!(
+        has_shortage,
+        "Without inventory override, expected a consumable shortage warning. Got warnings: {:?}",
+        warnings_no_inv
+    );
+
+    // -------------------------------------------------------------------------
+    // With inventory {"dough": 200}: 80 + 80 = 160 <= 200 → NO shortage warning.
+    // Should have an "Inventory override" warning confirming the override took effect.
+    // -------------------------------------------------------------------------
+    let input_with_inv = format!(
+        r#"{{"command":"solve","inventory":{{"dough":200}},"template":{}}}"#,
+        base_template
+    );
+
+    let output_with_inv = cmd()
+        .write_stdin(input_with_inv)
+        .assert()
+        .success()
+        .stdout(contains(r#""ok":true"#))
+        .get_output()
+        .stdout
+        .clone();
+
+    let text_with_inv = String::from_utf8(output_with_inv).unwrap();
+    let parsed_with_inv: serde_json::Value = serde_json::from_str(&text_with_inv).unwrap();
+
+    let warnings_with_inv = parsed_with_inv["data"]["warnings"].as_array().unwrap();
+
+    let no_shortage = warnings_with_inv
+        .iter()
+        .all(|w| !w.as_str().unwrap_or("").contains("may run out"));
+    assert!(
+        no_shortage,
+        "With inventory override dough=200, expected NO consumable shortage warning. Got warnings: {:?}",
+        warnings_with_inv
+    );
+
+    let has_override_warning = warnings_with_inv
+        .iter()
+        .any(|w| w.as_str().unwrap_or("").contains("Inventory override"));
+    assert!(
+        has_override_warning,
+        "With inventory override dough=200, expected an 'Inventory override' warning. Got warnings: {:?}",
+        warnings_with_inv
+    );
 }
