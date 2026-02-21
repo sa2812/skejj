@@ -5,21 +5,12 @@ import { loadSchedule } from '../loader.js';
 import { renderGantt, detectColorLevel } from '../renderer.js';
 import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
 import { solve } from '../engine.js';
-import { shouldShowSuggestions, generateSuggestions } from '../suggestions.js';
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];
-
-// ---------------------------------------------------------------------------
-// Helper: collect repeatable option values into an array
-// ---------------------------------------------------------------------------
 
 function collect(value: string, previous: string[]): string[] {
   return previous.concat([value]);
 }
-
-// ---------------------------------------------------------------------------
-// Levenshtein distance for fuzzy resource name suggestions
-// ---------------------------------------------------------------------------
 
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
@@ -50,9 +41,9 @@ Examples:
   $ skejj make schedule.yaml --width 120
   $ skejj make myplan.json --format csv
   $ skejj make myplan.json -q -o schedule.txt
-  $ skejj make schedule.yaml -r oven=2
-  $ skejj make schedule.yaml -r oven=2 -r chef=3`)
-  .action(async (file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[] }) => {
+  $ skejj make schedule.json -r Oven=2
+  $ skejj make schedule.json -r Oven=2 -r Chef=3`)
+  .action((file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[] }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {
       console.error('Validation errors:');
@@ -60,9 +51,7 @@ Examples:
       process.exit(1);
     }
 
-    // -------------------------------------------------------------------------
-    // Parse and validate resource overrides BEFORE solving
-    // -------------------------------------------------------------------------
+    // Parse resource overrides
     const overrides: Record<string, number> = {};
     if (options.resource && options.resource.length > 0) {
       const templateResources = loaded.data.resources ?? [];
@@ -70,7 +59,7 @@ Examples:
         templateResources.map(r => [r.name.toLowerCase(), r])
       );
 
-      const seen = new Map<string, number>(); // track duplicates (last wins)
+      const seen = new Map<string, number>();
 
       for (const raw of options.resource) {
         const eqIdx = raw.indexOf('=');
@@ -81,30 +70,25 @@ Examples:
         const name = raw.slice(0, eqIdx).trim();
         const valueStr = raw.slice(eqIdx + 1).trim();
 
-        // Parse numeric value
         const value = Number(valueStr);
         if (isNaN(value)) {
           console.error(`Error: Invalid value "${valueStr}" for resource "${name}". Must be a number.`);
           process.exit(1);
         }
 
-        // Negative check
         if (value < 0) {
           console.error(`Error: Invalid value "${value}" for resource "${name}". Must be non-negative.`);
           process.exit(1);
         }
 
-        // Zero check
         if (value === 0) {
           console.error(`Error: Resource "${name}" cannot be set to 0 (minimum available resources is 1).`);
           process.exit(1);
         }
 
-        // Validate resource name exists (case-insensitive)
         const matched = resourceNameSet.get(name.toLowerCase());
         if (!matched) {
           const validNames = templateResources.map(r => r.name);
-          // Fuzzy match: find closest name by Levenshtein distance
           let suggestion = '';
           if (validNames.length > 0) {
             let bestDist = Infinity;
@@ -121,13 +105,11 @@ Examples:
           process.exit(1);
         }
 
-        // Duplicate check (last wins, warn)
         if (seen.has(name.toLowerCase())) {
           console.error(`Warning: Resource "${name}" overridden multiple times. Using last value: ${value}`);
         }
         seen.set(name.toLowerCase(), value);
 
-        // Round decimal to integer for Rust engine (which uses u32)
         overrides[matched.name] = Math.round(value);
       }
     }
@@ -136,45 +118,18 @@ Examples:
       const inventory = Object.keys(overrides).length > 0 ? overrides : undefined;
       const result = solve(loaded.data, inventory);
 
-      // ASCII Gantt always prints to terminal (stdout), regardless of --format
       const termWidth = options.width !== undefined
         ? options.width
         : Math.min(process.stdout.columns ?? 80, 80);
       const colorLevel = detectColorLevel();
-
-      // Build a resourceId -> capacity map for suggestion deduplication
-      // (so suggestions don't re-suggest resources the user already overrode)
-      const resolvedResourceOverrides = new Map<string, number>();
-      if (Object.keys(overrides).length > 0) {
-        const templateResources = loaded.data.resources ?? [];
-        for (const res of templateResources) {
-          if (overrides[res.name] !== undefined) {
-            resolvedResourceOverrides.set(res.id, overrides[res.name]);
-          }
-        }
-      }
-
-      // Generate suggestions if appropriate (TTY, not quiet, not machine format)
-      let suggestions = null;
-      if (shouldShowSuggestions(options)) {
-        try {
-          suggestions = await generateSuggestions(result, loaded.data, file, options, resolvedResourceOverrides);
-        } catch {
-          // Suggestions are non-critical — silently skip on any error
-          suggestions = null;
-        }
-      }
-
       const asciiOutput = renderGantt(result, loaded.data, {
         quiet: options.quiet ?? false,
         termWidth,
         colorLevel,
         overrides,
-        suggestions,
       });
 
       if (options.format) {
-        // --format present: validate format, write export file, and always print ASCII to stdout
         const fmt = options.format as string;
         if (!VALID_FORMATS.includes(fmt as FormatName)) {
           console.error(`Error: Unknown format "${fmt}". Valid formats: ${VALID_FORMATS.join(', ')}`);
@@ -184,7 +139,6 @@ Examples:
         const format = fmt as FormatName;
         const formatted = exportSchedule(format, result, loaded.data);
 
-        // Derive output file path: --output override, or auto-name from input filename
         let outPath: string;
         if (options.output) {
           outPath = path.resolve(options.output);
@@ -193,17 +147,10 @@ Examples:
           outPath = path.resolve(`${base}${FORMAT_EXTENSIONS[format]}`);
         }
 
-        // Write export file
         fs.writeFileSync(outPath, formatted);
-
-        // Always print ASCII to stdout
         console.log(asciiOutput);
-
-        // Confirmation to stderr so it doesn't mix with stdout ASCII output
         console.error(`Exported ${format} to ${outPath}`);
       } else {
-        // --format absent: existing behavior
-        // --output writes ASCII to file; otherwise print to stdout
         if (options.output) {
           const outPath = path.resolve(options.output);
           fs.writeFileSync(outPath, asciiOutput + '\n');
