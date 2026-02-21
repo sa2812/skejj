@@ -19,6 +19,8 @@ import { join, resolve } from 'node:path';
 const CLI = resolve(import.meta.dirname ?? new URL('.', import.meta.url).pathname, '../dist/index.js');
 // Absolute path to the examples directory
 const EXAMPLES = resolve(import.meta.dirname ?? new URL('.', import.meta.url).pathname, '../examples');
+// Absolute path to the test fixtures directory
+const FIXTURES = resolve(import.meta.dirname ?? new URL('.', import.meta.url).pathname, '../tests/fixtures');
 
 // ---------------------------------------------------------------------------
 // Helper: run the CLI with given args; captures stdout + stderr.
@@ -210,6 +212,88 @@ describe('skejj CLI', () => {
     expect(result.exitCode).toBe(0);
     // In non-TTY mode, suggestions should be suppressed
     expect(result.stdout).not.toContain('Try next');
+  });
+
+  // -------------------------------------------------------------------------
+  // Resource override tests (RES-01, RES-02, RES-03, RES-04)
+  // -------------------------------------------------------------------------
+
+  // Test 12: --resource flag applies override and shows resource table
+  it('make with --resource applies override and shows resource table', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Oven=1']);
+    expect(result.exitCode).toBe(0);
+    // Resource table should appear with arrow notation
+    expect(result.stdout).toContain('Resources ---');
+    expect(result.stdout).toMatch(/Oven.*2 -> 1/);
+  });
+
+  // Test 13: -r short flag works
+  it('make with -r short flag works', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '-r', 'Oven=3']);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Resources ---');
+    expect(result.stdout).toMatch(/Oven.*2 -> 3/);
+  });
+
+  // Test 14: unknown resource name errors with suggestion
+  it('unknown resource name produces error with suggestion', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Ovn=2']);
+    expect(result.exitCode).not.toBe(0);
+    const output = result.stdout + result.stderr;
+    expect(output).toContain('Unknown resource');
+    expect(output).toContain('Did you mean');
+    expect(output).toContain('Oven');
+  });
+
+  // Test 15: unknown resource with no close match lists valid names
+  it('unknown resource lists valid resource names', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'xyz=2']);
+    expect(result.exitCode).not.toBe(0);
+    const output = result.stdout + result.stderr;
+    expect(output).toContain('Unknown resource');
+    expect(output).toContain('Valid resources');
+  });
+
+  // Test 16: non-numeric value errors
+  it('non-numeric resource value produces error', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Oven=abc']);
+    expect(result.exitCode).not.toBe(0);
+    const output = result.stdout + result.stderr;
+    expect(output).toContain('Must be a number');
+  });
+
+  // Test 17: zero value errors
+  it('zero resource value produces error', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Oven=0']);
+    expect(result.exitCode).not.toBe(0);
+    const output = result.stdout + result.stderr;
+    expect(output).toContain('cannot be set to 0');
+  });
+
+  // Test 18: no resource table without overrides
+  it('no resource table when no overrides passed', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json')]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain('Resources ---');
+  });
+
+  // Test 19: consumable override via CLI shows remaining capacity (RES-04 E2E)
+  it('consumable override via CLI increases capacity and shows remaining', async () => {
+    // Without override: 60+60=120 > 100 capacity, expect shortage warning
+    const noOverride = await run(['make', join(FIXTURES, 'consumable-override.json')]);
+    expect(noOverride.exitCode).toBe(0);
+    expect(noOverride.stdout).toMatch(/run out|shortfall|shortage/i);
+
+    // With override to 200: 60+60=120 <= 200, no shortage
+    const withOverride = await run(['make', join(FIXTURES, 'consumable-override.json'), '--resource', 'Dough=200']);
+    expect(withOverride.exitCode).toBe(0);
+    // Should show resource table with arrow notation for Dough
+    expect(withOverride.stdout).toContain('Resources ---');
+    expect(withOverride.stdout).toMatch(/Dough.*100 -> 200/);
+    // Should show remaining capacity (200 - 120 = 80 remaining)
+    expect(withOverride.stdout).toMatch(/80 remaining/);
+    // Should NOT have shortage warning
+    expect(withOverride.stdout).not.toMatch(/run out|shortfall|shortage/i);
   });
 
 });

@@ -5,6 +5,7 @@ import { loadSchedule } from '../loader.js';
 import { renderGantt, detectColorLevel } from '../renderer.js';
 import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
 import { solve } from '../engine.js';
+import { shouldShowSuggestions, generateSuggestions } from '../suggestions.js';
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];
 
@@ -35,6 +36,7 @@ export const makeCommand = new Command('make')
   .option('-f, --format <type>', 'Export format: gantt, csv, json (writes a file in addition to ASCII terminal output)')
   .option('--width <cols>', 'Chart width in columns (default: terminal width or 80)', parseInt)
   .option('-r, --resource <name=value>', 'Override resource availability (repeatable)', collect, [])
+  .option('--arrows', 'Show dependency connector lines between task bars (ASCII Gantt only)')
   .addHelpText('after', `
 Examples:
   $ skejj make examples/roast-chicken.json
@@ -42,8 +44,9 @@ Examples:
   $ skejj make myplan.json --format csv
   $ skejj make myplan.json -q -o schedule.txt
   $ skejj make schedule.json -r Oven=2
-  $ skejj make schedule.json -r Oven=2 -r Chef=3`)
-  .action((file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[] }) => {
+  $ skejj make schedule.json -r Oven=2 -r Chef=3
+  $ skejj make schedule.json --arrows`)
+  .action(async (file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[]; arrows?: boolean }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {
       console.error('Validation errors:');
@@ -118,6 +121,24 @@ Examples:
       const inventory = Object.keys(overrides).length > 0 ? overrides : undefined;
       const result = solve(loaded.data, inventory);
 
+      // Build resolvedResourceOverrides Map for suggestion module
+      const resolvedResourceOverrides = new Map<string, number>();
+      for (const [name, value] of Object.entries(overrides)) {
+        const res = loaded.data.resources.find(r => r.name === name);
+        if (res) resolvedResourceOverrides.set(res.id, value);
+      }
+
+      // Generate suggestions if appropriate (TTY, not quiet, not machine format)
+      let suggestions = null;
+      if (shouldShowSuggestions(options)) {
+        try {
+          suggestions = await generateSuggestions(result, loaded.data, file, options, resolvedResourceOverrides);
+        } catch {
+          // Suggestions are non-critical — silently skip on any error
+          suggestions = null;
+        }
+      }
+
       const termWidth = options.width !== undefined
         ? options.width
         : Math.min(process.stdout.columns ?? 80, 80);
@@ -127,6 +148,8 @@ Examples:
         termWidth,
         colorLevel,
         overrides,
+        suggestions,
+        showArrows: options.arrows ?? false,
       });
 
       if (options.format) {

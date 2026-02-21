@@ -1,0 +1,35 @@
+{
+  "id": "consumable-test",
+  "name": "Consumable Override Test",
+  "steps": [
+    {
+      "id": "step-a",
+      "title": "Mix dough batch 1",
+      "durationMins": 10,
+      "dependencies": [],
+      "resourceNeeds": [
+        { "resourceId": "dough", "quantity": 60 }
+      ]
+    },
+    {
+      "id": "step-b",
+      "title": "Mix dough batch 2",
+      "durationMins": 10,
+      "dependencies": [
+        { "stepId": "step-a", "dependencyType": "FinishToStart" }
+      ],
+      "resourceNeeds": [
+        { "resourceId": "dough", "quantity": 60 }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "dough",
+      "name": "Dough",
+      "kind": "Consumable",
+      "capacity": 100,
+      "roles": []
+    }
+  ]
+}
