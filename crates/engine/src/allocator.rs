@@ -174,12 +174,18 @@ pub fn allocate_resources(
         .map(|r| (r.id.clone(), ResourceTimeline::default()))
         .collect();
 
-    // Consumable: track remaining quantity
+    // Consumable: track remaining quantity.
+    // Use the overridden capacity from resource_capacity (which has inventory overrides applied)
+    // rather than r.capacity (the raw template value), so that consumable inventory overrides
+    // are honoured during tracking.
     let mut consumable_remaining: HashMap<String, u32> = template
         .resources
         .iter()
         .filter(|r| matches!(r.kind, ResourceKind::Consumable))
-        .map(|r| (r.id.clone(), r.capacity))
+        .map(|r| {
+            let cap = resource_capacity.get(r.id.as_str()).copied().unwrap_or(r.capacity);
+            (r.id.clone(), cap)
+        })
         .collect();
 
     // -----------------------------------------------------------------------
