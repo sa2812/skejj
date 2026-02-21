@@ -2,6 +2,17 @@
   "name": "skejj",
   "version": "0.1.0",
   "description": "Constraint-based schedule solver — Rust core, Node.js CLI",
+  "license": "MIT",
+  "author": "sa2812",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sa2812/skejj.git"
+  },
+  "homepage": "https://github.com/sa2812/skejj#readme",
+  "bugs": {
+    "url": "https://github.com/sa2812/skejj/issues"
+  },
+  "keywords": ["schedule", "scheduler", "constraint-solver", "cli", "calendar", "planner", "rust"],
   "type": "module",
   "bin": {
     "skejj": "./dist/index.js"

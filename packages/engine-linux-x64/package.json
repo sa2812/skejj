@@ -2,6 +2,13 @@
   "name": "@skejj/engine-linux-x64",
   "version": "0.1.0",
   "description": "skejj scheduling engine binary for Linux x64",
+  "author": "sa2812",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sa2812/skejj.git",
+    "directory": "packages/engine-linux-x64"
+  },
+  "homepage": "https://github.com/sa2812/skejj",
   "os": ["linux"],
   "cpu": ["x64"],
   "bin": { "skejj-engine": "./bin/skejj-engine" },

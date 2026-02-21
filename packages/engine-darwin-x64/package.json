@@ -2,6 +2,13 @@
   "name": "@skejj/engine-darwin-x64",
   "version": "0.1.0",
   "description": "skejj scheduling engine binary for macOS x64 (Intel)",
+  "author": "sa2812",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sa2812/skejj.git",
+    "directory": "packages/engine-darwin-x64"
+  },
+  "homepage": "https://github.com/sa2812/skejj",
   "os": ["darwin"],
   "cpu": ["x64"],
   "bin": { "skejj-engine": "./bin/skejj-engine" },
