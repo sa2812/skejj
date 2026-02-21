@@ -3,6 +3,7 @@ import stringWidth from 'string-width';
 import isUnicodeSupported from 'is-unicode-supported';
 import type { SolvedScheduleResult, SolvedStepResult } from './engine.js';
 import type { ScheduleInput } from './schema.js';
+import type { SuggestionsBlock } from './suggestions.js';
 
 // ---------------------------------------------------------------------------
 // Character constants — Unicode or ASCII fallback
@@ -22,6 +23,7 @@ export interface RenderOptions {
   termWidth: number;
   colorLevel: 0 | 1 | 2 | 3;
   overrides?: Record<string, number>;
+  suggestions?: SuggestionsBlock | null;  // null or undefined = suppressed
 }
 
 export function detectColorLevel(): 0 | 1 | 2 | 3 {
@@ -541,6 +543,34 @@ export function renderGantt(
           // Non-overridden resource: show "name: capacity"
           lines.push(`${labelColor(`  ${res.name}:`)} ${res.capacity}`);
         }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Suggestions section — "Try next" and "Did you know?" (optional)
+  // ---------------------------------------------------------------------------
+
+  if (options.suggestions) {
+    const { tryNext, didYouKnow } = options.suggestions;
+
+    if (tryNext.length > 0) {
+      lines.push('');
+      lines.push(sepColor(H_RULE.repeat(termWidth)));
+      lines.push(labelColor('Try next:'));
+      for (const item of tryNext) {
+        // Pad label to 20 chars for alignment, dim styling
+        const labelPart = c.dim(item.label.padEnd(20));
+        const commandPart = item.command;
+        lines.push(`  ${labelPart} ${commandPart}`);
+      }
+    }
+
+    if (didYouKnow.length > 0) {
+      lines.push('');
+      lines.push(labelColor('Did you know?'));
+      for (const tip of didYouKnow) {
+        lines.push(`  ${c.dim('\u2022')} ${tip}`);  // bullet point
       }
     }
   }
