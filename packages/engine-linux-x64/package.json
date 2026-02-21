@@ -1,6 +1,6 @@
 {
   "name": "@skejj/engine-linux-x64",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "skejj scheduling engine binary for Linux x64",
   "author": "sa2812",
   "repository": {
