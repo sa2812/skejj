@@ -5,6 +5,7 @@ import { loadSchedule } from '../loader.js';
 import { renderGantt, detectColorLevel } from '../renderer.js';
 import { exportSchedule, FormatName, FORMAT_EXTENSIONS } from '../exporters/index.js';
 import { solve } from '../engine.js';
+import { shouldShowSuggestions, generateSuggestions } from '../suggestions.js';
 
 const VALID_FORMATS: FormatName[] = ['gantt', 'csv', 'json'];
 
@@ -51,7 +52,7 @@ Examples:
   $ skejj make myplan.json -q -o schedule.txt
   $ skejj make schedule.yaml -r oven=2
   $ skejj make schedule.yaml -r oven=2 -r chef=3`)
-  .action((file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[] }) => {
+  .action(async (file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[] }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {
       console.error('Validation errors:');
@@ -140,11 +141,36 @@ Examples:
         ? options.width
         : Math.min(process.stdout.columns ?? 80, 80);
       const colorLevel = detectColorLevel();
+
+      // Build a resourceId -> capacity map for suggestion deduplication
+      // (so suggestions don't re-suggest resources the user already overrode)
+      const resolvedResourceOverrides = new Map<string, number>();
+      if (Object.keys(overrides).length > 0) {
+        const templateResources = loaded.data.resources ?? [];
+        for (const res of templateResources) {
+          if (overrides[res.name] !== undefined) {
+            resolvedResourceOverrides.set(res.id, overrides[res.name]);
+          }
+        }
+      }
+
+      // Generate suggestions if appropriate (TTY, not quiet, not machine format)
+      let suggestions = null;
+      if (shouldShowSuggestions(options)) {
+        try {
+          suggestions = await generateSuggestions(result, loaded.data, file, options, resolvedResourceOverrides);
+        } catch {
+          // Suggestions are non-critical — silently skip on any error
+          suggestions = null;
+        }
+      }
+
       const asciiOutput = renderGantt(result, loaded.data, {
         quiet: options.quiet ?? false,
         termWidth,
         colorLevel,
         overrides,
+        suggestions,
       });
 
       if (options.format) {
