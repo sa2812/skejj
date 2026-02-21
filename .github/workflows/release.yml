@@ -113,7 +113,7 @@ jobs:
           done
 
       - name: Build JS CLI
-        run: npm ci --omit=optional && npm run build
+        run: npm install --omit=optional && npm run build
 
       - name: Publish main package
         env:
