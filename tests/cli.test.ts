@@ -191,4 +191,25 @@ describe('skejj CLI', () => {
     }
   });
 
+  // -------------------------------------------------------------------------
+  // Test 10: --quiet suppresses suggestions
+  // -------------------------------------------------------------------------
+  it('make --quiet suppresses suggestions', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--quiet']);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain('Try next');
+    expect(result.stdout).not.toContain('Did you know');
+  });
+
+  // -------------------------------------------------------------------------
+  // Test 11: piped (non-TTY) output suppresses suggestions
+  // -------------------------------------------------------------------------
+  it('piped output suppresses suggestions (non-TTY)', async () => {
+    // execa captures stdout via pipe, which means isTTY is false — suggestions suppressed
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json')]);
+    expect(result.exitCode).toBe(0);
+    // In non-TTY mode, suggestions should be suppressed
+    expect(result.stdout).not.toContain('Try next');
+  });
+
 });

@@ -13,6 +13,7 @@ import { renderGantt } from '../src/renderer.js';
 import { solve } from '../src/engine.js';
 import { loadSchedule } from '../src/loader.js';
 import { resolve } from 'node:path';
+import type { SuggestionsBlock } from '../src/suggestions.js';
 
 const EXAMPLES = resolve(import.meta.dirname ?? new URL('.', import.meta.url).pathname, '../examples');
 
@@ -75,6 +76,61 @@ describe('renderer golden fixtures', () => {
   it('shows schedule name as header', () => {
     const output = renderExample('roast-chicken.json');
     expect(output).toContain('Roast Chicken Dinner');
+  });
+
+  it('renders Try next section when suggestions provided', () => {
+    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.json'));
+    if (!loaded.success) throw new Error('load failed');
+    const result = solve(loaded.data);
+    const suggestions: SuggestionsBlock = {
+      tryNext: [
+        { label: 'More ovens:', command: 'skejj make roast-chicken.json --resource oven=3' },
+        { label: 'Export CSV:', command: 'skejj make roast-chicken.json --format csv' },
+      ],
+      didYouKnow: [
+        'Use --quiet to hide the summary',
+        'YAML files are also supported',
+        'Steps on the critical path have 0 slack',
+      ],
+    };
+    const output = renderGantt(result, loaded.data, {
+      quiet: true,
+      termWidth: 80,
+      colorLevel: 0,
+      suggestions,
+    });
+    expect(output).toContain('Try next:');
+    expect(output).toContain('More ovens:');
+    expect(output).toContain('skejj make roast-chicken.json --resource oven=3');
+    expect(output).toContain('Did you know?');
+    expect(output).toContain('Use --quiet to hide the summary');
+  });
+
+  it('omits suggestions when suggestions is null', () => {
+    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.json'));
+    if (!loaded.success) throw new Error('load failed');
+    const result = solve(loaded.data);
+    const output = renderGantt(result, loaded.data, {
+      quiet: true,
+      termWidth: 80,
+      colorLevel: 0,
+      suggestions: null,
+    });
+    expect(output).not.toContain('Try next');
+    expect(output).not.toContain('Did you know');
+  });
+
+  it('omits suggestions when not provided (backward compatible)', () => {
+    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.json'));
+    if (!loaded.success) throw new Error('load failed');
+    const result = solve(loaded.data);
+    const output = renderGantt(result, loaded.data, {
+      quiet: true,
+      termWidth: 80,
+      colorLevel: 0,
+    });
+    expect(output).not.toContain('Try next');
+    expect(output).not.toContain('Did you know');
   });
 
   it('120-col bars are wider than 80-col bars', () => {
