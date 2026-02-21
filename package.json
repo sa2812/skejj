@@ -1,7 +1,7 @@
 {
   "name": "skejj",
   "version": "0.1.0",
-  "description": "Constraint-based schedule solver — Rust core, Node.js CLI",
+  "description": "Simple schedules",
   "license": "MIT",
   "author": "sa2812",
   "repository": {
@@ -51,7 +51,6 @@
   },
   "optionalDependencies": {
     "@skejj/engine-darwin-arm64": "0.1.0",
-    "@skejj/engine-darwin-x64": "0.1.0",
     "@skejj/engine-linux-arm64": "0.1.0",
     "@skejj/engine-linux-x64": "0.1.0",
     "@skejj/engine-win32-x64": "0.1.0"

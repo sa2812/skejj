@@ -79,12 +79,12 @@ Solve a schedule file and display the timed plan as an ASCII Gantt chart.
 
 Critical-path steps are shown with solid blocks (█). Non-critical steps with lighter blocks (░). The summary includes total time, step count, critical path length, and float per step.
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-o, --output <file>` | stdout | Write output to file instead of stdout |
-| `-q, --quiet` | false | Suppress summary stats, show only the schedule |
-| `-f, --format <type>` | -- | Export format: `gantt`, `csv`, `json` (writes a file in addition to ASCII output) |
-| `--width <cols>` | terminal width | Chart width in columns (default: terminal width or 80) |
+| Flag                  | Default        | Description                                                                       |
+| --------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `-o, --output <file>` | stdout         | Write output to file instead of stdout                                            |
+| `-q, --quiet`         | false          | Suppress summary stats, show only the schedule                                    |
+| `-f, --format <type>` | --             | Export format: `gantt`, `csv`, `json` (writes a file in addition to ASCII output) |
+| `--width <cols>`      | terminal width | Chart width in columns (default: terminal width or 80)                            |
 
 ```bash
 # Solve and display in the terminal
@@ -106,9 +106,9 @@ skejj make myplan.json --format json --width 120
 
 Validate a schedule file without solving it. Reports schema errors and constraint warnings.
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-q, --quiet` | false | Show only errors, suppress warnings |
+| Flag          | Default | Description                         |
+| ------------- | ------- | ----------------------------------- |
+| `-q, --quiet` | false   | Show only errors, suppress warnings |
 
 ```bash
 # Validate and show all errors and warnings
@@ -134,10 +134,10 @@ skejj new
 
 Generate a schedule JSON file from a natural language description using an LLM. Requires an API key configured via `skejj config set`.
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-o, --output <file>` | derived from schedule name | Override output filename |
-| `-f, --format <type>` | -- | Export format in addition to ASCII Gantt: `gantt` (Mermaid), `csv`, `json` |
+| Flag                  | Default                    | Description                                                                |
+| --------------------- | -------------------------- | -------------------------------------------------------------------------- |
+| `-o, --output <file>` | derived from schedule name | Override output filename                                                   |
+| `-f, --format <type>` | --                         | Export format in addition to ASCII Gantt: `gantt` (Mermaid), `csv`, `json` |
 
 ```bash
 # Generate and display a birthday party schedule

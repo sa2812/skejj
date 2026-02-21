@@ -67,7 +67,6 @@ function findBinary(): string {
   const platform = `${process.platform}-${process.arch}`;
   const platformPackageMap: Record<string, string> = {
     'darwin-arm64': '@skejj/engine-darwin-arm64',
-    'darwin-x64': '@skejj/engine-darwin-x64',
     'linux-x64': '@skejj/engine-linux-x64',
     'win32-x64': '@skejj/engine-win32-x64',
   };
