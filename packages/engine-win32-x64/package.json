@@ -1,6 +1,6 @@
 {
   "name": "@skejj/engine-win32-x64",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "skejj scheduling engine binary for Windows x64",
   "author": "sa2812",
   "repository": {
