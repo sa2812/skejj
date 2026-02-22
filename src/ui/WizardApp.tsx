@@ -808,7 +808,7 @@ export default function WizardApp({ onComplete }: WizardAppProps) {
   }
 
   if (screen.kind === 'filename') {
-    const suggested = (toKebab(scheduleName) || 'schedule') + '.json';
+    const suggested = (toKebab(scheduleName) || 'schedule') + '.yaml';
     return (
       <Box flexDirection="column" gap={1}>
         <Text dimColor>{getWizardProgress(screen)}</Text>

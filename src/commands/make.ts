@@ -38,12 +38,12 @@ export const makeCommand = new Command('make')
   .option('-r, --resource <name=value>', 'Override resource availability (repeatable)', collect, [])
   .addHelpText('after', `
 Examples:
-  $ skejj make examples/roast-chicken.json
+  $ skejj make examples/roast-chicken.yaml
   $ skejj make schedule.yaml --width 120
-  $ skejj make myplan.json --format csv
-  $ skejj make myplan.json -q -o schedule.txt
-  $ skejj make schedule.json -r Oven=2
-  $ skejj make schedule.json -r Oven=2 -r Chef=3`)
+  $ skejj make myplan.yaml --format csv
+  $ skejj make myplan.yaml -q -o schedule.txt
+  $ skejj make schedule.yaml -r Oven=2
+  $ skejj make schedule.yaml -r Oven=2 -r Chef=3`)
   .action(async (file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[] }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {

@@ -3,6 +3,7 @@ import { Box, Text, useApp } from 'ink';
 import { TextInput, Select, MultiSelect } from '@inkjs/ui';
 import * as fs from 'fs';
 import * as path from 'path';
+import { stringify as stringifyYaml } from 'yaml';
 import type { ScheduleInput } from '../schema.js';
 import { renderGantt, detectColorLevel } from '../renderer.js';
 import { solve } from '../engine.js';
@@ -1095,7 +1096,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             }
             if (val === 'overwrite') {
               try {
-                fs.writeFileSync(path.resolve(originalFile), JSON.stringify(schedule, null, 2));
+                fs.writeFileSync(path.resolve(originalFile), stringifyYaml(schedule));
                 exit();
               } catch (e) {
                 dispatch({ type: 'ERROR', msg: `Failed to write file: ${(e as Error).message}` });
@@ -1114,7 +1115,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
 
   // Save to new file: TextInput for filename
   if (screen.kind === 'save-new-file') {
-    const suggested = path.basename(originalFile, path.extname(originalFile)) + '-adjusted.json';
+    const suggested = path.basename(originalFile, path.extname(originalFile)) + '-adjusted.yaml';
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold>Save to new file:</Text>
@@ -1132,7 +1133,7 @@ export default function AdjustApp({ initialSchedule, initialSolved, originalFile
             }
             try {
               const outPath = path.resolve(trimmed);
-              fs.writeFileSync(outPath, JSON.stringify(schedule, null, 2));
+              fs.writeFileSync(outPath, stringifyYaml(schedule));
               exit();
             } catch (e) {
               dispatch({ type: 'ERROR', msg: `Failed to write file: ${(e as Error).message}` });

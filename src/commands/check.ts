@@ -8,7 +8,7 @@ export const checkCommand = new Command('check')
   .option('-q, --quiet', 'Show only errors, suppress warnings')
   .addHelpText('after', `
 Examples:
-  $ skejj check examples/roast-chicken.json
+  $ skejj check examples/roast-chicken.yaml
   $ skejj check myplan.yaml -q`)
   .action((file: string, options: { quiet?: boolean }) => {
     const loaded = loadSchedule(file);

@@ -9,6 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { stringify as stringifyYaml } from 'yaml';
 import { Command } from 'commander';
 import { loadAiConfig } from '../ai/config.js';
 import { buildModel } from '../ai/provider.js';
@@ -61,7 +62,7 @@ export const generateCommand = new Command('generate')
   .addHelpText('after', `
 Examples:
   $ skejj generate "plan a birthday party for 10 kids"
-  $ skejj generate "weekend trip to Paris" -o paris.json
+  $ skejj generate "weekend trip to Paris" -o paris.yaml
   $ skejj generate "home renovation" --format gantt`)
   .action(
     async (
@@ -122,16 +123,16 @@ Examples:
 
       // 5. Derive output filename
       const kebab = toKebabCase(scheduleInput.name);
-      const jsonFilename = options.output ?? `${kebab}.json`;
-      const jsonPath = path.resolve(process.cwd(), jsonFilename);
+      const yamlFilename = options.output ?? `${kebab}.yaml`;
+      const yamlPath = path.resolve(process.cwd(), yamlFilename);
 
       // 6. Warn if file already exists (non-interactive — don't prompt)
-      if (fs.existsSync(jsonPath)) {
-        console.error(`Warning: ${jsonFilename} already exists, overwriting.`);
+      if (fs.existsSync(yamlPath)) {
+        console.error(`Warning: ${yamlFilename} already exists, overwriting.`);
       }
 
-      // 7. Write JSON to CWD
-      fs.writeFileSync(jsonPath, JSON.stringify(scheduleInput, null, 2));
+      // 7. Write YAML to CWD
+      fs.writeFileSync(yamlPath, stringifyYaml(scheduleInput));
 
       // 8. Auto-solve using engine
       let solvedResult;
@@ -166,7 +167,7 @@ Examples:
         console.error(`Exported ${format} to ${exportPath}`);
       }
 
-      // 11. Confirm JSON was written
-      console.error(`Written: ./${jsonFilename}`);
+      // 11. Confirm YAML was written
+      console.error(`Written: ./${yamlFilename}`);
     },
   );

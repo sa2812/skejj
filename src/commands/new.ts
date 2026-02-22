@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { stringify as stringifyYaml } from 'yaml';
 import { Command } from 'commander';
 import React from 'react';
 import { renderGantt, detectColorLevel } from '../renderer.js';
@@ -44,8 +45,8 @@ Examples:
       const filename = completedFilename;
       const fullPath = path.resolve(process.cwd(), filename);
 
-      // 1. Write JSON to CWD
-      fs.writeFileSync(fullPath, JSON.stringify(schedule, null, 2));
+      // 1. Write YAML to CWD
+      fs.writeFileSync(fullPath, stringifyYaml(schedule));
 
       // 2. Auto-solve using engine
       const solvedResult = solve(schedule);

@@ -3,7 +3,7 @@
 Constraint-based schedule solver -- define tasks, dependencies, and resources; get a timed plan.
 
 ```
-$ npx skejj make examples/roast-chicken.json
+$ npx skejj make examples/roast-chicken.yaml
 
 Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity …
@@ -46,7 +46,7 @@ Total: 2h | Oven: 2/2
 ## Quick Start
 
 ```bash
-npx skejj make examples/roast-chicken.json
+npx skejj make examples/roast-chicken.yaml
 ```
 
 No install needed -- `npx` downloads and runs skejj directly.
@@ -89,19 +89,19 @@ Each step is rendered on two lines: a header line (start time, name, duration or
 
 ```bash
 # Solve and display in the terminal
-skejj make examples/roast-chicken.json
+skejj make examples/roast-chicken.yaml
 
 # Export to CSV alongside ASCII output
-skejj make myplan.json --format csv
+skejj make myplan.yaml --format csv
 
 # Write ASCII output to a file, suppress summary
-skejj make myplan.json --quiet --output schedule.txt
+skejj make myplan.yaml --quiet --output schedule.txt
 
 # Export JSON data with a fixed chart width
-skejj make myplan.json --format json --width 120
+skejj make myplan.yaml --format json --width 120
 
 # Override a resource capacity
-skejj make myplan.json --resource oven=2
+skejj make myplan.yaml --resource oven=2
 ```
 
 ---
@@ -116,10 +116,10 @@ Validate a schedule file without solving it. Reports schema errors and constrain
 
 ```bash
 # Validate and show all errors and warnings
-skejj check myplan.json
+skejj check myplan.yaml
 
 # Show errors only (useful in CI)
-skejj check myplan.json --quiet
+skejj check myplan.yaml --quiet
 ```
 
 ---
@@ -148,7 +148,7 @@ Generate a schedule JSON file from a natural language description using an LLM. 
 skejj generate "plan a kids birthday party for 20 children"
 
 # Generate and save to a specific file
-skejj generate "weekend trip to Paris" --output paris-trip.json
+skejj generate "weekend trip to Paris" --output paris-trip.yaml
 
 # Generate and export a CSV
 skejj generate "home renovation project" --format csv
@@ -190,10 +190,10 @@ skejj config show
 Interactively adjust a solved schedule in a re-solve loop. Opens an interactive editor (requires TTY) where you can modify step durations, dependencies, and resources, and see the Gantt chart update live.
 
 ```bash
-skejj adjust examples/roast-chicken.json
+skejj adjust examples/roast-chicken.yaml
 
 # Or adjust a schedule you created
-skejj adjust myplan.json
+skejj adjust myplan.yaml
 ```
 
 ---
@@ -205,7 +205,7 @@ skejj adjust myplan.json
 Demonstrates: equipment resource constraint (Oven, capacity 1 -- chicken and potatoes cannot roast simultaneously), backward scheduling from a target dinner time, and a linear dependency chain (prep -> roast -> gravy -> plate).
 
 ```
-$ npx skejj make examples/roast-chicken.json
+$ npx skejj make examples/roast-chicken.yaml
 
 Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity …
@@ -252,7 +252,7 @@ Total: 2h | Oven: 2/2
 Demonstrates: people resource constraint (4 helpers shared across parallel tasks), forward scheduling from a party start time, parallel tracks (food, venue setup, activities), and resource conflict warnings when steps are delayed.
 
 ```
-$ npx skejj make examples/birthday-party.json
+$ npx skejj make examples/birthday-party.yaml
 
 Kids Birthday Party
 Planning a kids birthday party with a team of helpers. People resource allocati…
@@ -306,7 +306,7 @@ Total: 3h 40m | Helpers: 4/4
 Demonstrates: ALAP (As Late As Possible) timing for dinner steps, multi-day multi-track scheduling, and a long planning horizon across two days with no resource constraints.
 
 ```
-$ npx skejj make examples/london-sightseeing.json
+$ npx skejj make examples/london-sightseeing.yaml
 
 London Weekend Sightseeing
 A two-day London itinerary covering major landmarks and cultural highlights. Di…
@@ -354,17 +354,17 @@ See [Schedule Template Schema Reference](docs/SCHEMA.md) for the full field refe
 
 ## Writing Your Own Schedule
 
-Schedules are JSON (or YAML) files. The fastest way to start:
+Schedules are YAML (or JSON) files. The fastest way to start:
 
 ```bash
 # Interactive wizard -- no schema knowledge required
 skejj new
 
-# Or write JSON directly and validate as you go
-skejj check myplan.json
+# Or write YAML directly and validate as you go
+skejj check myplan.yaml
 ```
 
-**Editor autocomplete:** Add a `$schema` field to your JSON file to get inline validation and autocomplete in VS Code and other editors:
+**Editor autocomplete:** YAML is the recommended format for readability. For JSON Schema validation in editors (VS Code, etc.), use a JSON file with a `$schema` key -- `$schema` validation works only with JSON:
 
 ```json
 {

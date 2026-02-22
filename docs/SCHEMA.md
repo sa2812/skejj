@@ -1,12 +1,12 @@
 # Schedule Template Schema Reference
 
-A **schedule template** is a JSON file that describes a set of tasks, their durations, dependencies, and optional constraints. skejj reads the template, applies CPM scheduling and resource allocation, and produces a timed plan.
+A **schedule template** is a YAML (or JSON) file that describes a set of tasks, their durations, dependencies, and optional constraints. skejj reads the template, applies CPM scheduling and resource allocation, and produces a timed plan.
 
 The schema is defined in `src/schema.ts` (Zod) and exported to `docs/schema.json` (JSON Schema draft-07). To regenerate: `npm run schema:gen`.
 
 ## Editor autocomplete
 
-Add a `$schema` field to your JSON file to get autocomplete and inline validation in VS Code and other editors:
+For autocomplete and inline validation in VS Code and other editors, use a JSON file with a `$schema` key -- `$schema` validation is a JSON-only feature. YAML is simpler to write but editors cannot validate it against the schema automatically.
 
 ```json
 {
@@ -145,6 +145,27 @@ Provide `startTime` or `endTime`, not both.
 
 A two-step schedule with a start constraint:
 
+```yaml
+id: pancakes
+name: Pancake Breakfast
+timeConstraint:
+  startTime: "2026-03-01T08:00:00"
+steps:
+  - id: mix-batter
+    title: Mix batter
+    durationMins: 5
+  - id: cook-pancakes
+    title: Cook pancakes
+    durationMins: 15
+    dependencies:
+      - stepId: mix-batter
+        dependencyType: FinishToStart
+```
+
+Run it: `npx tsx src/index.ts make pancakes.yaml`
+
+For JSON Schema validation in editors, use JSON format with a `$schema` key:
+
 ```json
 {
   "$schema": "./docs/schema.json",
@@ -173,8 +194,6 @@ A two-step schedule with a start constraint:
   ]
 }
 ```
-
-Run it: `npx tsx src/index.ts make pancakes.json`
 
 ---
 
