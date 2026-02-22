@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-21)
 
 ## Current Position
 
-Phase: 12 of 13 (Dependency Arrows) — COMPLETE
-Plan: 1 of 1 in current phase
-Status: All v0.0.6 phases complete — Phase 12 (Dependency Arrows) is the final phase
-Last activity: 2026-02-21 — Completed 12-01-PLAN.md (--arrows connector rendering)
+Phase: 12 of 13 (Dependency Arrows) — REVERTED
+Plan: N/A
+Status: Phase 12 reverted due to poor requirements and unclear planning. Phases 10, 11, 13 remain complete.
+Last activity: 2026-02-22 — Reverted all phase 12 commits
 
-Progress: [██████████] 4/4 phases complete (v0.0.6 milestone — all phases done)
+Progress: [████████░░] 3/4 phases complete (v0.0.6 milestone — phase 12 reverted)
 
 ## Accumulated Context
 
@@ -40,13 +40,6 @@ Full v0.1.1 history archived in milestones/v0.1.1-ROADMAP.md.
 - `resolvedResourceOverrides` Map takes priority over parsing `options.resource` strings (defensive compatibility).
 - Tip selection: top 2 by relevance score, third by `totalDurationMins % remainingTips.length` for deterministic rotation.
 
-**Phase 12 decisions:**
-- Horizontal arms extend rightward through empty space (not leftward through bar content)
-- Connector turns appear only on bar rows (second line of each step pair), not header rows
-- Track separator rows get GUTTER_WIDTH space prefix + reduced fill length (total = termWidth)
-- No density cap: render all edges; cross chars handle overflow when > 2 lanes needed
-- chunkRow tracking: 3 rows per step (header+bar+blank) + 1 per non-empty track separator
-
 ### Pending Todos
 
 None.
@@ -54,7 +47,7 @@ None.
 ### Blockers/Concerns
 
 - npm platform package binary (`@skejj/engine-darwin-arm64`) needs to be updated when publishing new releases — it cached the pre-RES-04 binary in node_modules.
-- v0.0.6 milestone is complete — all 4 phases (10, 11, 12, 13) done. Ready to bump version and release.
+- Phase 12 (Dependency Arrows) reverted — needs better requirements before re-attempting.
 
 ### Quick Tasks Completed
 
@@ -67,7 +60,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-21
-Stopped at: Phase 12 complete — all v0.0.6 phases done, 40 tests passing
+Last session: 2026-02-22
+Stopped at: Phase 12 reverted — all phase 12 commits removed
 Resume file: None
-Next action: `/gsd:new-milestone` to plan v0.0.6 release or next milestone
+Next action: Re-plan phase 12 with better requirements, or skip and complete v0.0.6 with phases 10, 11, 13

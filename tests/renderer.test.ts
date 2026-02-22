@@ -14,11 +14,10 @@ import { solve } from '../src/engine.js';
 import { loadSchedule } from '../src/loader.js';
 import { resolve } from 'node:path';
 import type { SuggestionsBlock } from '../src/suggestions.js';
-import stringWidth from 'string-width';
 
 const EXAMPLES = resolve(import.meta.dirname ?? new URL('.', import.meta.url).pathname, '../examples');
 
-function renderExample(filename: string, opts?: { width?: number; quiet?: boolean; showArrows?: boolean }) {
+function renderExample(filename: string, opts?: { width?: number; quiet?: boolean }) {
   const loaded = loadSchedule(resolve(EXAMPLES, filename));
   if (!loaded.success) throw new Error(`Failed to load ${filename}: ${loaded.errors.join(', ')}`);
   const result = solve(loaded.data);
@@ -26,7 +25,6 @@ function renderExample(filename: string, opts?: { width?: number; quiet?: boolea
     quiet: opts?.quiet ?? true,
     termWidth: opts?.width ?? 80,
     colorLevel: 0, // always plain text in tests
-    showArrows: opts?.showArrows ?? false,
   });
 }
 
@@ -148,71 +146,5 @@ describe('renderer golden fixtures', () => {
     const blocks80 = (barLine80.match(/█/g) ?? []).length;
     const blocks120 = (barLine120.match(/█/g) ?? []).length;
     expect(blocks120).toBeGreaterThan(blocks80);
-  });
-});
-
-describe('renderer arrow connectors', () => {
-  it('roast-chicken.json with --arrows at 80 cols', () => {
-    const output = renderExample('roast-chicken.json', { showArrows: true });
-    expect(output).toMatchSnapshot();
-  });
-
-  it('london-sightseeing.json with --arrows at 80 cols', () => {
-    const output = renderExample('london-sightseeing.json', { showArrows: true });
-    expect(output).toMatchSnapshot();
-  });
-
-  it('birthday-party.json with --arrows at 80 cols', () => {
-    const output = renderExample('birthday-party.json', { showArrows: true });
-    expect(output).toMatchSnapshot();
-  });
-
-  it('arrows output contains box-drawing connector characters', () => {
-    const output = renderExample('roast-chicken.json', { showArrows: true });
-    // At least one connector character should appear (box-drawing chars used in gutter)
-    expect(output).toMatch(/[│─┌┐└┘├┤┼]/);
-  });
-
-  it('no-arrows output does not contain corner/T-junction characters', () => {
-    const output = renderExample('roast-chicken.json', { showArrows: false });
-    // Corners and T-junctions should not appear when arrows are off
-    // (│ may appear as grid char, but ┌┐└┘├┤┼ should not)
-    expect(output).not.toMatch(/[┌┐└┘├┤┼]/);
-  });
-
-  it('arrows output stays within specified width', () => {
-    const output = renderExample('roast-chicken.json', { showArrows: true, width: 80 });
-    const lines = output.split('\n');
-    for (const line of lines) {
-      expect(stringWidth(line)).toBeLessThanOrEqual(80);
-    }
-  });
-
-  it('connector arms appear on bar rows not header rows', () => {
-    const output = renderExample('roast-chicken.json', { showArrows: true });
-    const lines = output.split('\n');
-    // Turn characters (corners and T-junctions) indicate connector horizontal arms
-    const turnChars = /[┌┐└┘├┤]/;
-    // Bar block characters (█) appear on bar rows (second line of each step pair)
-    const barBlockChars = /[█]/;
-
-    const violatingLines: number[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      // If this line has turn chars but NO bar block chars, it may be a header row
-      // (pure gutter vertical pass-through lines only have │ which is not a turn)
-      if (turnChars.test(line) && !barBlockChars.test(line)) {
-        // Connector turns on a non-bar line: violation
-        violatingLines.push(i + 1);  // 1-based for readability
-      }
-    }
-    // Turns should only appear on bar rows (which have █ block chars)
-    expect(violatingLines).toEqual([]);
-  });
-
-  it('non-arrow output is identical when showArrows is false vs not provided', () => {
-    const withFalse = renderExample('roast-chicken.json', { showArrows: false });
-    const withDefault = renderExample('roast-chicken.json');
-    expect(withFalse).toBe(withDefault);
   });
 });
