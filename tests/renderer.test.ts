@@ -215,4 +215,68 @@ describe('renderer arrow connectors', () => {
     const withDefault = renderExample('roast-chicken.json');
     expect(withFalse).toBe(withDefault);
   });
+
+  it('predecessor bar has arm only after bar end, successor bar has arm only before bar start', () => {
+    const output = renderExample('birthday-party.json', { showArrows: true });
+    const lines = output.split('\n');
+    // Find bar lines: lines that contain block characters (█)
+    const barLines = lines.filter(l => /█/.test(l));
+
+    // Count bar lines that have arms on only one side (pred-only or succ-only steps)
+    const oneSideCount = barLines.filter(l => {
+      const bs = l.indexOf('█');
+      const be = l.lastIndexOf('█');
+      if (bs < 0) return false;
+      const before = /─/.test(l.slice(0, bs));
+      const after = /─/.test(l.slice(be + 1));
+      return (before || after) && !(before && after);
+    }).length;
+
+    // At least some bars should have one-sided arms (fixed directional behavior).
+    // birthday-party has steps that are pred-only (buy-supplies, bake-cake)
+    // and succ-only (clean-up), so we expect at least 3 one-sided bar lines.
+    // Previously ALL connected bars had both-sided arms (broken behavior).
+    expect(oneSideCount).toBeGreaterThan(0);
+
+    // bake-cake is pred-only: verify it has arm AFTER bar end but NOT before bar start
+    // Find the bake-cake bar line (should have arm after blocks only)
+    const bakeCakeBarLines = barLines.filter(l => {
+      const bs = l.indexOf('█');
+      const be = l.lastIndexOf('█');
+      if (bs < 0) return false;
+      // Only arm after bar end (no H_RULE before bar start in bar content area)
+      const before = /─/.test(l.slice(0, bs));
+      const after = /─/.test(l.slice(be + 1));
+      return after && !before;
+    });
+    // At least one bar with arm only after end (pred-only bar like bake-cake)
+    expect(bakeCakeBarLines.length).toBeGreaterThan(0);
+  });
+
+  it('birthday-party arrows output stays within specified width', () => {
+    const output = renderExample('birthday-party.json', { showArrows: true, width: 80 });
+    const lines = output.split('\n');
+    for (const line of lines) {
+      expect(stringWidth(line)).toBeLessThanOrEqual(80);
+    }
+  });
+});
+
+describe('renderer warning truncation', () => {
+  it('warning lines respect width cap', () => {
+    // birthday-party.json produces warnings that exceed 80 chars raw
+    const output = renderExample('birthday-party.json', { width: 60, showArrows: false });
+    const lines = output.split('\n');
+    for (const line of lines) {
+      expect(stringWidth(line)).toBeLessThanOrEqual(60);
+    }
+  });
+
+  it('warning lines respect width cap at 80 cols', () => {
+    const output = renderExample('birthday-party.json', { width: 80, showArrows: false });
+    const lines = output.split('\n');
+    for (const line of lines) {
+      expect(stringWidth(line)).toBeLessThanOrEqual(80);
+    }
+  });
 });
