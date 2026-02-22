@@ -29,44 +29,44 @@ function renderExample(filename: string, opts?: { width?: number; quiet?: boolea
 }
 
 describe('renderer golden fixtures', () => {
-  it('roast-chicken.json at 80 cols', () => {
-    const output = renderExample('roast-chicken.json');
+  it('roast-chicken.yaml at 80 cols', () => {
+    const output = renderExample('roast-chicken.yaml');
     expect(output).toMatchSnapshot();
   });
 
-  it('london-sightseeing.json at 80 cols', () => {
-    const output = renderExample('london-sightseeing.json');
+  it('london-sightseeing.yaml at 80 cols', () => {
+    const output = renderExample('london-sightseeing.yaml');
     expect(output).toMatchSnapshot();
   });
 
-  it('birthday-party.json at 80 cols', () => {
-    const output = renderExample('birthday-party.json');
+  it('birthday-party.yaml at 80 cols', () => {
+    const output = renderExample('birthday-party.yaml');
     expect(output).toMatchSnapshot();
   });
 
-  it('simple.json at 80 cols', () => {
-    const output = renderExample('simple.json');
+  it('simple.yaml at 80 cols', () => {
+    const output = renderExample('simple.yaml');
     expect(output).toMatchSnapshot();
   });
 
-  it('roast-chicken.json at 120 cols', () => {
-    const output = renderExample('roast-chicken.json', { width: 120 });
+  it('roast-chicken.yaml at 120 cols', () => {
+    const output = renderExample('roast-chicken.yaml', { width: 120 });
     expect(output).toMatchSnapshot();
   });
 
-  it('roast-chicken.json with quiet: false', () => {
-    const output = renderExample('roast-chicken.json', { quiet: false });
+  it('roast-chicken.yaml with quiet: false', () => {
+    const output = renderExample('roast-chicken.yaml', { quiet: false });
     expect(output).toMatchSnapshot();
   });
 
   it('colorLevel 0 produces no ANSI codes', () => {
-    const output = renderExample('roast-chicken.json');
+    const output = renderExample('roast-chicken.yaml');
     // eslint-disable-next-line no-control-regex
     expect(output).not.toMatch(/\x1b\[/);
   });
 
   it('multi-track schedule shows track separators', () => {
-    const output = renderExample('london-sightseeing.json');
+    const output = renderExample('london-sightseeing.yaml');
     expect(output).toContain('Day 1');
     expect(output).toContain('Day 2');
     // Track separators use horizontal rule characters
@@ -74,18 +74,18 @@ describe('renderer golden fixtures', () => {
   });
 
   it('shows schedule name as header', () => {
-    const output = renderExample('roast-chicken.json');
+    const output = renderExample('roast-chicken.yaml');
     expect(output).toContain('Roast Chicken Dinner');
   });
 
   it('renders Try next section when suggestions provided', () => {
-    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.json'));
+    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.yaml'));
     if (!loaded.success) throw new Error('load failed');
     const result = solve(loaded.data);
     const suggestions: SuggestionsBlock = {
       tryNext: [
-        { label: 'More ovens:', command: 'skejj make roast-chicken.json --resource oven=3' },
-        { label: 'Export CSV:', command: 'skejj make roast-chicken.json --format csv' },
+        { label: 'More ovens:', command: 'skejj make roast-chicken.yaml --resource oven=3' },
+        { label: 'Export CSV:', command: 'skejj make roast-chicken.yaml --format csv' },
       ],
       didYouKnow: [
         'Use --quiet to hide the summary',
@@ -101,13 +101,13 @@ describe('renderer golden fixtures', () => {
     });
     expect(output).toContain('Try next:');
     expect(output).toContain('More ovens:');
-    expect(output).toContain('skejj make roast-chicken.json --resource oven=3');
+    expect(output).toContain('skejj make roast-chicken.yaml --resource oven=3');
     expect(output).toContain('Did you know?');
     expect(output).toContain('Use --quiet to hide the summary');
   });
 
   it('omits suggestions when suggestions is null', () => {
-    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.json'));
+    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.yaml'));
     if (!loaded.success) throw new Error('load failed');
     const result = solve(loaded.data);
     const output = renderGantt(result, loaded.data, {
@@ -121,7 +121,7 @@ describe('renderer golden fixtures', () => {
   });
 
   it('omits suggestions when not provided (backward compatible)', () => {
-    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.json'));
+    const loaded = loadSchedule(resolve(EXAMPLES, 'roast-chicken.yaml'));
     if (!loaded.success) throw new Error('load failed');
     const result = solve(loaded.data);
     const output = renderGantt(result, loaded.data, {
@@ -134,8 +134,8 @@ describe('renderer golden fixtures', () => {
   });
 
   it('120-col bars are wider than 80-col bars', () => {
-    const output80 = renderExample('roast-chicken.json', { width: 80 });
-    const output120 = renderExample('roast-chicken.json', { width: 120 });
+    const output80 = renderExample('roast-chicken.yaml', { width: 80 });
+    const output120 = renderExample('roast-chicken.yaml', { width: 120 });
     // In two-line layout, header line contains step name, bar is the next line
     const lines80 = output80.split('\n');
     const headerIdx80 = lines80.findIndex((l) => l.includes('Roast chicken'));

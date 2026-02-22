@@ -48,8 +48,8 @@ describe('skejj CLI', () => {
   // -------------------------------------------------------------------------
   // Test 1: make produces Gantt chart
   // -------------------------------------------------------------------------
-  it('make produces ASCII Gantt for roast-chicken.json', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json')]);
+  it('make produces ASCII Gantt for roast-chicken.yaml', async () => {
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml')]);
 
     expect(result.exitCode).toBe(0);
     // Gantt uses Unicode block characters for bars
@@ -64,8 +64,8 @@ describe('skejj CLI', () => {
   // -------------------------------------------------------------------------
   // Test 2: check validates successfully
   // -------------------------------------------------------------------------
-  it('check reports valid for roast-chicken.json', async () => {
-    const result = await run(['check', join(EXAMPLES, 'roast-chicken.json')]);
+  it('check reports valid for roast-chicken.yaml', async () => {
+    const result = await run(['check', join(EXAMPLES, 'roast-chicken.yaml')]);
 
     expect(result.exitCode).toBe(0);
     // Should contain "valid" text (case-insensitive match)
@@ -102,7 +102,7 @@ describe('skejj CLI', () => {
 
     try {
       const result = await run(
-        ['make', join(EXAMPLES, 'roast-chicken.json'), '--format', 'json'],
+        ['make', join(EXAMPLES, 'roast-chicken.yaml'), '--format', 'json'],
         { cwd: tmpDir }
       );
 
@@ -197,7 +197,7 @@ describe('skejj CLI', () => {
   // Test 10: --quiet suppresses suggestions
   // -------------------------------------------------------------------------
   it('make --quiet suppresses suggestions', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--quiet']);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml'), '--quiet']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).not.toContain('Try next');
     expect(result.stdout).not.toContain('Did you know');
@@ -208,7 +208,7 @@ describe('skejj CLI', () => {
   // -------------------------------------------------------------------------
   it('piped output suppresses suggestions (non-TTY)', async () => {
     // execa captures stdout via pipe, which means isTTY is false — suggestions suppressed
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json')]);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml')]);
     expect(result.exitCode).toBe(0);
     // In non-TTY mode, suggestions should be suppressed
     expect(result.stdout).not.toContain('Try next');
@@ -220,7 +220,7 @@ describe('skejj CLI', () => {
 
   // Test 12: --resource flag applies override and shows resource table
   it('make with --resource applies override and shows resource table', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Oven=1']);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml'), '--resource', 'Oven=1']);
     expect(result.exitCode).toBe(0);
     // Resource table should appear with arrow notation
     expect(result.stdout).toContain('Resources ---');
@@ -229,7 +229,7 @@ describe('skejj CLI', () => {
 
   // Test 13: -r short flag works
   it('make with -r short flag works', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '-r', 'Oven=3']);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml'), '-r', 'Oven=3']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Resources ---');
     expect(result.stdout).toMatch(/Oven.*2 -> 3/);
@@ -237,7 +237,7 @@ describe('skejj CLI', () => {
 
   // Test 14: unknown resource name errors with suggestion
   it('unknown resource name produces error with suggestion', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Ovn=2']);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml'), '--resource', 'Ovn=2']);
     expect(result.exitCode).not.toBe(0);
     const output = result.stdout + result.stderr;
     expect(output).toContain('Unknown resource');
@@ -247,7 +247,7 @@ describe('skejj CLI', () => {
 
   // Test 15: unknown resource with no close match lists valid names
   it('unknown resource lists valid resource names', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'xyz=2']);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml'), '--resource', 'xyz=2']);
     expect(result.exitCode).not.toBe(0);
     const output = result.stdout + result.stderr;
     expect(output).toContain('Unknown resource');
@@ -256,7 +256,7 @@ describe('skejj CLI', () => {
 
   // Test 16: non-numeric value errors
   it('non-numeric resource value produces error', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Oven=abc']);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml'), '--resource', 'Oven=abc']);
     expect(result.exitCode).not.toBe(0);
     const output = result.stdout + result.stderr;
     expect(output).toContain('Must be a number');
@@ -264,7 +264,7 @@ describe('skejj CLI', () => {
 
   // Test 17: zero value errors
   it('zero resource value produces error', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json'), '--resource', 'Oven=0']);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml'), '--resource', 'Oven=0']);
     expect(result.exitCode).not.toBe(0);
     const output = result.stdout + result.stderr;
     expect(output).toContain('cannot be set to 0');
@@ -272,7 +272,7 @@ describe('skejj CLI', () => {
 
   // Test 18: no resource table without overrides
   it('no resource table when no overrides passed', async () => {
-    const result = await run(['make', join(EXAMPLES, 'roast-chicken.json')]);
+    const result = await run(['make', join(EXAMPLES, 'roast-chicken.yaml')]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).not.toContain('Resources ---');
   });

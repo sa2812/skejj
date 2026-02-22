@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`renderer golden fixtures > birthday-party.json at 80 cols 1`] = `
+exports[`renderer golden fixtures > birthday-party.yaml at 80 cols 1`] = `
 "Kids Birthday Party
 Planning a kids birthday party with a team of helpers. People resource allocatiâ€¦
 
@@ -44,7 +44,7 @@ Planning a kids birthday party with a team of helpers. People resource allocatiâ
   - Step 'Set up games' was delayed beyond its available slack due to resource conflict with 'Helpers'"
 `;
 
-exports[`renderer golden fixtures > london-sightseeing.json at 80 cols 1`] = `
+exports[`renderer golden fixtures > london-sightseeing.yaml at 80 cols 1`] = `
 "London Weekend Sightseeing
 A two-day London itinerary covering major landmarks and cultural highlights. Diâ€¦
 
@@ -83,7 +83,7 @@ A two-day London itinerary covering major landmarks and cultural highlights. Diâ
 "
 `;
 
-exports[`renderer golden fixtures > roast-chicken.json at 80 cols 1`] = `
+exports[`renderer golden fixtures > roast-chicken.yaml at 80 cols 1`] = `
 "Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity â€¦
 
@@ -120,7 +120,7 @@ A classic Sunday roast with oven-constrained cooking steps. The oven (capacity â
 "
 `;
 
-exports[`renderer golden fixtures > roast-chicken.json at 120 cols 1`] = `
+exports[`renderer golden fixtures > roast-chicken.yaml at 120 cols 1`] = `
 "Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast â€¦
 
@@ -157,7 +157,7 @@ A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1
 "
 `;
 
-exports[`renderer golden fixtures > roast-chicken.json with quiet: false 1`] = `
+exports[`renderer golden fixtures > roast-chicken.yaml with quiet: false 1`] = `
 "Roast Chicken Dinner
 A classic Sunday roast with oven-constrained cooking steps. The oven (capacity â€¦
 
@@ -196,7 +196,7 @@ A classic Sunday roast with oven-constrained cooking steps. The oven (capacity â
 Total: 2h | Oven: 2/2"
 `;
 
-exports[`renderer golden fixtures > simple.json at 80 cols 1`] = `
+exports[`renderer golden fixtures > simple.yaml at 80 cols 1`] = `
 "Simple Test Schedule
 
 10:00                           10:30                           11:00
