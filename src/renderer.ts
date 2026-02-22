@@ -573,6 +573,8 @@ export function renderGantt(
     let chunkTotalRows = 0;
     let gutterGrid: GutterGrid = [];
     let chunkRow = 0;  // tracks current row within chunk for gutter indexing
+    let predEdgesForStep = new Map<string, Set<string>>();  // stepId -> set of succIds this step is pred of
+    let succEdgesForStep = new Map<string, Set<string>>();  // stepId -> set of predIds this step is succ of
 
     if (showArrows && chunkSteps.length > 0) {
       const chunkResult = buildRowMap(chunkSteps, template);
@@ -582,6 +584,17 @@ export function renderGantt(
         (e) => chunkRowOf.has(e.predId) && chunkRowOf.has(e.succId)
       );
       gutterGrid = buildGutterGrid(chunkEdges, chunkRowOf, chunkTotalRows);
+
+      // Build edge role maps: for each step, track whether it is a predecessor or successor
+      predEdgesForStep = new Map<string, Set<string>>();
+      succEdgesForStep = new Map<string, Set<string>>();
+      for (const { predId, succId } of chunkEdges) {
+        if (!chunkRowOf.has(predId) || !chunkRowOf.has(succId)) continue;
+        if (!predEdgesForStep.has(predId)) predEdgesForStep.set(predId, new Set());
+        predEdgesForStep.get(predId)!.add(succId);
+        if (!succEdgesForStep.has(succId)) succEdgesForStep.set(succId, new Set());
+        succEdgesForStep.get(succId)!.add(predId);
+      }
     }
 
     // Track grouping
@@ -629,7 +642,12 @@ export function renderGantt(
         for (const step of trackSteps) {
           const stepLines = renderStepLines(
             step, chunk, chunkMins, barWidth, tickPositions, trackColorFn,
-            showArrows ? { gutterGrid, chunkRow } : undefined,
+            showArrows ? {
+              gutterGrid,
+              chunkRow,
+              isPred: predEdgesForStep.has(step.stepId),
+              isSucc: succEdgesForStep.has(step.stepId),
+            } : undefined,
           );
           lines.push(...stepLines);
           lines.push('');
@@ -641,7 +659,12 @@ export function renderGantt(
       for (const step of noTrack) {
         const stepLines = renderStepLines(
           step, chunk, chunkMins, barWidth, tickPositions, noTrackColor,
-          showArrows ? { gutterGrid, chunkRow } : undefined,
+          showArrows ? {
+            gutterGrid,
+            chunkRow,
+            isPred: predEdgesForStep.has(step.stepId),
+            isSucc: succEdgesForStep.has(step.stepId),
+          } : undefined,
         );
         lines.push(...stepLines);
         lines.push('');
@@ -652,7 +675,12 @@ export function renderGantt(
       for (const step of chunkSteps) {
         const stepLines = renderStepLines(
           step, chunk, chunkMins, barWidth, tickPositions, noTrackColor,
-          showArrows ? { gutterGrid, chunkRow } : undefined,
+          showArrows ? {
+            gutterGrid,
+            chunkRow,
+            isPred: predEdgesForStep.has(step.stepId),
+            isSucc: succEdgesForStep.has(step.stepId),
+          } : undefined,
         );
         lines.push(...stepLines);
         lines.push('');
@@ -675,7 +703,7 @@ export function renderGantt(
     effectiveBarWidth: number,
     tickPositions: number[],
     trackColorFn: (s: string) => string,
-    arrowCtx?: { gutterGrid: GutterGrid; chunkRow: number },
+    arrowCtx?: { gutterGrid: GutterGrid; chunkRow: number; isPred: boolean; isSucc: boolean },
   ): string[] {
     const title = titleOf(step);
     const startLabel = baseStartTime
@@ -721,25 +749,28 @@ export function renderGantt(
 
       const chars = buildBarChars(effectiveBarWidth, startPos, endPos, FULL_BLOCK, tickPositions);
 
-      // When arrows active, draw horizontal arms in bar area
-      // The turn column (col 2 in gutter) exits right — arm continues into bar area
-      // Successor arm: from col 0 to startPos-1 (empty space before bar start)
-      // Predecessor arm: from endPos to end of bar area (empty space after bar end)
+      // When arrows active, draw directional horizontal arms in bar area.
+      // The turn column (col 2 in gutter) exits right — arm continues into bar area.
+      // Successor arm: from col 0 to startPos (left side, empty space before bar start)
+      // Predecessor arm: from endPos to end of bar area (right side, empty space after bar end)
+      // Role-aware: only draw the arm relevant to this step's role in each edge.
       if (arrowCtx && arrowCtx.gutterGrid.length > 0) {
         const barRow = arrowCtx.chunkRow + 1;  // bar line = header row + 1
         if (barRow < arrowCtx.gutterGrid.length) {
           const turnCell = arrowCtx.gutterGrid[barRow]?.[GUTTER_WIDTH - 1];
           if (turnCell?.right) {
-            // Successor arm: replace empty chars from col 0 to startPos
-            if (startPos > 0) {
+            // Successor arm: arm comes FROM the left TO bar start
+            // Only draw if this step IS a successor in at least one edge
+            if (arrowCtx.isSucc && startPos > 0) {
               for (let col = 0; col < startPos && col < effectiveBarWidth; col++) {
                 if (chars[col] === ' ' || chars[col] === GRID_CHAR) {
                   chars[col] = H_RULE;
                 }
               }
             }
-            // Predecessor arm: replace empty chars from endPos to end of bar area
-            if (endPos < effectiveBarWidth) {
+            // Predecessor arm: arm goes FROM bar end TO the right
+            // Only draw if this step IS a predecessor in at least one edge
+            if (arrowCtx.isPred && endPos < effectiveBarWidth) {
               for (let col = endPos; col < effectiveBarWidth; col++) {
                 if (chars[col] === ' ' || chars[col] === GRID_CHAR) {
                   chars[col] = H_RULE;
@@ -812,7 +843,12 @@ export function renderGantt(
   if (warnings.length > 0) {
     lines.push('');
     lines.push(warnColor('--- Warnings ---'));
-    for (const w of warnings) lines.push(`  - ${warnColor(w)}`);
+    for (const w of warnings) {
+      const prefix = '  - ';
+      const maxWarnLen = termWidth - prefix.length;
+      const truncW = w.length > maxWarnLen ? w.slice(0, maxWarnLen - 1) + '\u2026' : w;
+      lines.push(`${prefix}${warnColor(truncW)}`);
+    }
   }
 
   // ---------------------------------------------------------------------------

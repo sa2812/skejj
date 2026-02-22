@@ -40,8 +40,8 @@ Planning a kids birthday party with a team of helpers. People resource allocati�
 
 
 --- Warnings ---
-  - Step 'Blow up balloons' was delayed beyond its available slack due to resource conflict with 'Helpers'
-  - Step 'Set up games' was delayed beyond its available slack due to resource conflict with 'Helpers'"
+  - Step 'Blow up balloons' was delayed beyond its available slack due to resou…
+  - Step 'Set up games' was delayed beyond its available slack due to resource …"
 `;
 
 exports[`renderer arrow connectors > london-sightseeing.json with --arrows at 80 cols 1`] = `
@@ -116,7 +116,7 @@ A classic Sunday roast with oven-constrained cooking steps. The oven (capacity �
 ├┼ ██████───────────────────────────────────────────────────────────────────────
 
    17:10 - Preheat Oven                                            5m (10m flex)
-└  ──────████───────────────────────────────────────────────────────────────────
+└  │     ████───────────────────────────────────────────────────────────────────
 "
 `;
 
@@ -160,8 +160,8 @@ Planning a kids birthday party with a team of helpers. People resource allocati�
 
 
 --- Warnings ---
-  - Step 'Blow up balloons' was delayed beyond its available slack due to resource conflict with 'Helpers'
-  - Step 'Set up games' was delayed beyond its available slack due to resource conflict with 'Helpers'"
+  - Step 'Blow up balloons' was delayed beyond its available slack due to resou…
+  - Step 'Set up games' was delayed beyond its available slack due to resource …"
 `;
 
 exports[`renderer golden fixtures > london-sightseeing.json at 80 cols 1`] = `
