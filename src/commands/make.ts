@@ -36,7 +36,6 @@ export const makeCommand = new Command('make')
   .option('-f, --format <type>', 'Export format: gantt, csv, json (writes a file in addition to ASCII terminal output)')
   .option('--width <cols>', 'Chart width in columns (default: terminal width or 80)', parseInt)
   .option('-r, --resource <name=value>', 'Override resource availability (repeatable)', collect, [])
-  .option('--arrows', 'Show dependency connector lines between task bars (ASCII Gantt only)')
   .addHelpText('after', `
 Examples:
   $ skejj make examples/roast-chicken.json
@@ -44,9 +43,8 @@ Examples:
   $ skejj make myplan.json --format csv
   $ skejj make myplan.json -q -o schedule.txt
   $ skejj make schedule.json -r Oven=2
-  $ skejj make schedule.json -r Oven=2 -r Chef=3
-  $ skejj make schedule.json --arrows`)
-  .action(async (file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[]; arrows?: boolean }) => {
+  $ skejj make schedule.json -r Oven=2 -r Chef=3`)
+  .action(async (file: string, options: { output?: string; quiet?: boolean; format?: string; width?: number; resource?: string[] }) => {
     const loaded = loadSchedule(file);
     if (!loaded.success) {
       console.error('Validation errors:');
@@ -149,7 +147,6 @@ Examples:
         colorLevel,
         overrides,
         suggestions,
-        showArrows: options.arrows ?? false,
       });
 
       if (options.format) {

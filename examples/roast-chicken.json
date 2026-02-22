@@ -136,6 +136,7 @@
       "durationMins": 5,
       "dependencies": [],
       "timingPolicy": "Alap",
+      "trackId": "setup",
       "resourceNeeds": [
         {
           "resourceId": "oven",
