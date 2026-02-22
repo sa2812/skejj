@@ -100,6 +100,11 @@ const aiResourceSchema = z.object({
   roles: z.array(z.string()), // required, no default
 });
 
+const aiTrackSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+});
+
 const aiTimeConstraintSchema = z.object({
   startTime: z.string().nullable(),
   endTime: z.string().nullable(),
@@ -110,7 +115,7 @@ export const aiScheduleSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable(),
   steps: z.array(aiStepSchema).min(1, 'At least one step is required'),
-  tracks: z.array(trackSchema), // trackSchema has no optional fields — reuse it
+  tracks: z.array(aiTrackSchema),
   resources: z.array(aiResourceSchema), // required, no default
   timeConstraint: aiTimeConstraintSchema.nullable(),
   defaultNumPeople: z.number().int().positive().nullable(),
