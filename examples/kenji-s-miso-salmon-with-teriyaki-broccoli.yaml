@@ -1,0 +1,56 @@
+id: kenjis-miso-salmon-teriyaki-broccoli
+name: Kenji's Miso Salmon with Teriyaki Broccoli
+description: A delicious meal combining miso-marinated salmon with a side of
+  teriyaki-flavored broccoli.
+steps:
+  - id: marinate-salmon
+    title: Marinate Salmon
+    durationMins: 30
+    dependencies: []
+    trackId: main-dish
+    resourceNeeds: []
+  - id: prep-broccoli
+    title: Prep Broccoli
+    durationMins: 10
+    dependencies: []
+    trackId: side-dish
+    resourceNeeds: []
+  - id: cook-salmon
+    title: Cook Salmon
+    durationMins: 10
+    dependencies:
+      - stepId: marinate-salmon
+        dependencyType: FinishToStart
+    trackId: main-dish
+    resourceNeeds:
+      - resourceId: oven
+        quantity: 1
+  - id: cook-broccoli
+    title: Cook Broccoli
+    durationMins: 10
+    dependencies:
+      - stepId: prep-broccoli
+        dependencyType: FinishToStart
+    trackId: side-dish
+    timingPolicy: Alap
+    resourceNeeds: []
+  - id: combine-dish
+    title: Combine Dish
+    durationMins: 1
+    dependencies:
+      - stepId: cook-salmon
+        dependencyType: FinishToStart
+      - stepId: cook-broccoli
+        dependencyType: FinishToStart
+    resourceNeeds: []
+tracks:
+  - id: main-dish
+    name: Main Dish
+  - id: side-dish
+    name: Side Dish
+resources:
+  - id: oven
+    name: Oven
+    kind: Equipment
+    capacity: 1
+    roles: []
