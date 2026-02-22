@@ -1,0 +1,108 @@
+id: roast-chicken-dinner
+name: Roast Chicken Dinner
+description: A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
+steps:
+  - id: prep-chicken
+    title: Prep chicken
+    description: Season and truss the chicken
+    durationMins: 15
+    trackId: mains
+
+  - id: roast-chicken
+    title: Roast chicken
+    description: Roast chicken in oven at 200°C
+    durationMins: 90
+    trackId: mains
+    dependencies:
+      - stepId: prep-chicken
+        dependencyType: FinishToStart
+      - stepId: preheat-oven
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: oven
+        quantity: 1
+
+  - id: prep-potatoes
+    title: Prep potatoes
+    description: Peel, parboil and rough up potatoes
+    durationMins: 20
+    trackId: sides
+
+  - id: roast-potatoes
+    title: Roast potatoes
+    description: Roast potatoes in oven at 220°C until golden
+    durationMins: 40
+    trackId: sides
+    timingPolicy: Alap
+    dependencies:
+      - stepId: prep-potatoes
+        dependencyType: FinishToStart
+      - stepId: preheat-oven
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: oven
+        quantity: 1
+
+  - id: make-gravy
+    title: Make gravy
+    description: Deglaze the roasting tin with stock and thicken
+    durationMins: 10
+    trackId: mains
+    dependencies:
+      - stepId: roast-chicken
+        dependencyType: FinishToStart
+
+  - id: steam-veg
+    title: Steam vegetables
+    description: Steam broccoli and carrots until tender
+    durationMins: 15
+    trackId: sides
+
+  - id: set-table
+    title: Set table
+    description: Lay out plates, cutlery, and glasses
+    durationMins: 10
+    trackId: setup
+
+  - id: plate-up
+    title: Plate up
+    description: Carve the chicken and plate all dishes
+    durationMins: 5
+    trackId: mains
+    dependencies:
+      - stepId: roast-chicken
+        dependencyType: FinishToStart
+      - stepId: roast-potatoes
+        dependencyType: FinishToStart
+      - stepId: make-gravy
+        dependencyType: FinishToStart
+      - stepId: steam-veg
+        dependencyType: FinishToStart
+      - stepId: set-table
+        dependencyType: FinishToStart
+
+  - id: preheat-oven
+    title: Preheat Oven
+    durationMins: 5
+    trackId: setup
+    timingPolicy: Alap
+    resourceNeeds:
+      - resourceId: oven
+        quantity: 2
+
+tracks:
+  - id: mains
+    name: Mains
+  - id: sides
+    name: Sides
+  - id: setup
+    name: Setup
+
+resources:
+  - id: oven
+    name: Oven
+    kind: Equipment
+    capacity: 2
+
+timeConstraint:
+  endTime: "2026-03-01T19:00:00"

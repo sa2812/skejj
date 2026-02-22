@@ -2,19 +2,17 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-21)
+See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Take a schedule template and real-world constraints, produce the best possible timed plan
-**Current focus:** v0.0.6 Output & Overrides milestone
+**Current focus:** None — between milestones
 
 ## Current Position
 
-Phase: 12 of 13 (Dependency Arrows) — REVERTED
-Plan: N/A
-Status: Phase 12 reverted due to poor requirements and unclear planning. Phases 10, 11, 13 remain complete.
-Last activity: 2026-02-22 — Reverted all phase 12 commits
-
-Progress: [████████░░] 3/4 phases complete (v0.0.6 milestone — phase 12 reverted)
+Phase: --
+Plan: --
+Status: No active milestone
+Last activity: 2026-02-22 -- Scrapped v0.0.7 (requirements not good enough)
 
 ## Accumulated Context
 
@@ -23,31 +21,17 @@ Progress: [████████░░] 3/4 phases complete (v0.0.6 milestone
 Decisions are logged in PROJECT.md Key Decisions table.
 Full v1.0 history archived in milestones/v1.0-ROADMAP.md.
 Full v0.1.1 history archived in milestones/v0.1.1-ROADMAP.md.
-
-**Phase 11 decisions:**
-- `-r/--resource` uses Commander collect() for repeatable flags (not comma-separated)
-- Decimal override values Math.round()ed to integer for Rust engine (u32)
-- Duplicate flag warns stderr, uses last value (not error)
-- Resource table uses ASCII ` -> ` arrow notation, not Unicode
-- Resource table position: after warnings section
-- Consumable fixture uses FinishToStart sequential steps so remaining is predictable (200-120=80)
-- `consumable_remaining` reads from `resource_capacity` (post-override) not `r.capacity` (raw template value)
-
-**Phase 13 decisions:**
-- Bottleneck resource = non-consumable with highest sum(stepDurationMins * quantityUsed) across critical-path steps. Consumables excluded.
-- Time savings heuristic: longest critical-path step using bottleneck resource if >= 5 min.
-- `--output` flag omitted from reconstructed commands (file-output suppresses suggestions).
-- `resolvedResourceOverrides` Map takes priority over parsing `options.resource` strings (defensive compatibility).
-- Tip selection: top 2 by relevance score, third by `totalDurationMins % remainingTips.length` for deterministic rotation.
+Full v0.0.6 history archived in milestones/v0.0.6-ROADMAP.md.
+v0.0.7 (Live Execution) scrapped — archived in milestones/v0.0.7-*.
 
 ### Pending Todos
 
-None.
+- (none)
 
 ### Blockers/Concerns
 
-- npm platform package binary (`@skejj/engine-darwin-arm64`) needs to be updated when publishing new releases — it cached the pre-RES-04 binary in node_modules.
-- Phase 12 (Dependency Arrows) reverted — needs better requirements before re-attempting.
+- npm platform package binary (`@skejj/engine-darwin-arm64`) needs to be updated when publishing new releases -- it cached the pre-RES-04 binary in node_modules.
+- Dependency arrows (deferred from v0.0.6) needs better requirements before attempting.
 
 ### Quick Tasks Completed
 
@@ -57,10 +41,11 @@ None.
 | 002 | Add npm metadata (license, author, repository, keywords) and MIT LICENSE file | 2026-02-21 | 78b0ab1 | [002-publish-to-npm](./quick/002-publish-to-npm/) |
 | 003 | Review build changes, fix linux-arm64 platform map, deploy v0.1.0 | 2026-02-21 | 834e49d | [003-review-build-deploy-v010](./quick/003-review-build-deploy-v010/) |
 | 004 | Reset all versions to 0.0.1, delete v0.1.0 tag, push v0.0.1 to trigger release | 2026-02-21 | 1b11b56 | [004-fix-npm-publish-reset-to-v0-0-1](./quick/004-fix-npm-publish-reset-to-v0-0-1/) |
+| 005 | Update README to match v0.0.6 output format and features | 2026-02-22 | 375e208 | [005-update-readme-features-appearance](./quick/005-update-readme-features-appearance/) |
 
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Phase 12 reverted — all phase 12 commits removed
+Stopped at: Scrapped v0.0.7 milestone
 Resume file: None
-Next action: Re-plan phase 12 with better requirements, or skip and complete v0.0.6 with phases 10, 11, 13
+Next action: /gsd:new-milestone when ready

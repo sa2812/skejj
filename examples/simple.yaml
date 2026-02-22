@@ -1,25 +1,24 @@
-id: simple-yaml
-name: Simple YAML Test Schedule
+id: simple
+name: Simple Test Schedule
 steps:
-  - id: 1
+  - id: a
     title: Step A
     durationMins: 30
-    dependencies: []
-    resourceNeeds: []
-  - id: 2
+
+  - id: b
     title: Step B
     durationMins: 45
     dependencies:
-      - stepId: 1
+      - stepId: a
         dependencyType: FinishToStart
-    resourceNeeds: []
-  - id: 3
+
+  - id: c
     title: Step C
     durationMins: 20
     dependencies:
-      - stepId: 1
+      - stepId: a
         dependencyType: FinishToStart
-    resourceNeeds: []
+
 tracks: []
 resources: []
 timeConstraint:

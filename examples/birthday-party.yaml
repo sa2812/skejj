@@ -1,0 +1,140 @@
+id: kids-birthday-party
+name: Kids Birthday Party
+description: Planning a kids birthday party with a team of helpers. People resource allocation ensures we never exceed 4 helpers simultaneously.
+timeConstraint:
+  startTime: "2026-06-15T10:00:00"
+
+tracks:
+  - id: food
+    name: Food
+  - id: venue
+    name: Venue
+  - id: activities
+    name: Activities
+
+resources:
+  - id: helpers
+    name: Helpers
+    kind: People
+    capacity: 4
+
+steps:
+  - id: buy-supplies
+    title: Buy supplies
+    description: Shop for food, decorations, and party supplies
+    durationMins: 60
+    trackId: venue
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 1
+
+  - id: bake-cake
+    title: Bake cake
+    description: Bake and cool the birthday cake
+    durationMins: 60
+    trackId: food
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 1
+
+  - id: blow-up-balloons
+    title: Blow up balloons
+    description: Inflate and arrange balloons
+    durationMins: 30
+    trackId: venue
+    dependencies:
+      - stepId: buy-supplies
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 2
+
+  - id: decorate-venue
+    title: Decorate venue
+    description: Hang streamers, banners, and lay out table covers
+    durationMins: 45
+    trackId: venue
+    dependencies:
+      - stepId: buy-supplies
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 3
+
+  - id: ice-cake
+    title: Ice cake
+    description: Apply icing and decorations to the cooled cake
+    durationMins: 20
+    trackId: food
+    dependencies:
+      - stepId: bake-cake
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 1
+
+  - id: set-up-games
+    title: Set up games
+    description: Arrange party game stations and prizes
+    durationMins: 20
+    trackId: activities
+    dependencies:
+      - stepId: buy-supplies
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 2
+
+  - id: welcome-guests
+    title: Welcome guests
+    description: Greet arriving guests and settle children in
+    durationMins: 10
+    trackId: activities
+    dependencies:
+      - stepId: blow-up-balloons
+        dependencyType: FinishToStart
+      - stepId: decorate-venue
+        dependencyType: FinishToStart
+      - stepId: set-up-games
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 2
+
+  - id: party-games
+    title: Party games
+    description: Run party games and pass-the-parcel
+    durationMins: 60
+    trackId: activities
+    dependencies:
+      - stepId: welcome-guests
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 2
+
+  - id: serve-cake
+    title: Serve cake
+    description: Sing happy birthday and serve cake slices
+    durationMins: 15
+    trackId: food
+    dependencies:
+      - stepId: party-games
+        dependencyType: FinishToStart
+      - stepId: ice-cake
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 1
+
+  - id: clean-up
+    title: Clean up
+    description: Tidy the venue and pack leftover food
+    durationMins: 30
+    trackId: venue
+    dependencies:
+      - stepId: serve-cake
+        dependencyType: FinishToStart
+    resourceNeeds:
+      - resourceId: helpers
+        quantity: 4
