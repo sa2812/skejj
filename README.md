@@ -6,41 +6,41 @@ Constraint-based schedule solver -- define tasks, dependencies, and resources; g
 $ npx skejj make examples/roast-chicken.json
 
 Roast Chicken Dinner
-A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
+A classic Sunday roast with oven-constrained cooking steps. The oven (capacity …
 
-                   17:00          17:30           18:00          18:30          19:00
-─ Mains ───────────────────────────────────────────────────────────────────────
-Prep chicken       ████████       │               │              │
-Roast chicken      │       █████████████████████████████████████████████
-Make gravy         │              │               │              │      █████
-Plate up           │              │               │              │           ███
-─ Sides ───────────────────────────────────────────────────────────────────────
-Prep potatoes      ░░░░░░░░░░     │               │              │
-Steam vegetables   ░░░░░░░░       │               │              │
-Roast potatoes     │              │               │      ░░░░░░░░░░░░░░░░░░░░
-─ Setup ───────────────────────────────────────────────────────────────────────
-Set table          ░░░░░          │               │              │
-Preheat Oven       │    ░░░       │               │              │
+17:00               17:30               18:00               18:30
+─ Mains ────────────────────────────────────────────────────────────────────────
+17:00 - Prep chicken                                                         15m
+██████████          │                   │                   │
 
---- Summary ---
-Total time: 2h
-Steps: 9
-Critical path: 2h (4 steps)
-Resources used: Oven
+17:15 - Roast chicken                                                     1h 30m
+│         ████████████████████████████████████████████████████████████████
 
---- Critical Path ---
-Prep chicken -> Roast chicken -> Make gravy -> Plate up
+18:45 - Make gravy                                                           10m
+│                   │                   │                   │         ███████
 
-Float per step:
-  Prep chicken: 17:00 -> 17:15  [0m (critical)]
-  Prep potatoes: 17:00 -> 17:20  [55m slack]
-  Steam vegetables: 17:00 -> 17:15  [100m slack]
-  Set table: 17:00 -> 17:10  [105m slack]
-  Preheat Oven: 17:10 -> 17:15  [10m slack]
-  Roast chicken: 17:15 -> 18:45  [0m (critical)]
-  Roast potatoes: 18:15 -> 18:55  [55m slack]
-  Make gravy: 18:45 -> 18:55  [0m (critical)]
-  Plate up: 18:55 -> 19:00  [0m (critical)]
+18:55 - Plate up                                                              5m
+│                   │                   │                   │                ███
+
+─ Sides ────────────────────────────────────────────────────────────────────────
+17:00 - Prep potatoes                                             20m (55m flex)
+█████████████       │                   │                   │
+
+17:00 - Steam vegetables                                       15m (1h 40m flex)
+██████████          │                   │                   │
+
+18:15 - Roast potatoes                                            40m (55m flex)
+│                   │                   │         ███████████████████████████
+
+─ Setup ────────────────────────────────────────────────────────────────────────
+17:00 - Set table                                              10m (1h 45m flex)
+███████             │                   │                   │
+
+17:10 - Preheat Oven                                               5m (10m flex)
+│      ███          │                   │                   │
+
+
+Total: 2h | Oven: 2/2
 ```
 
 ## Quick Start
@@ -77,14 +77,15 @@ skejj generate "plan a birthday party for 20 kids"
 
 Solve a schedule file and display the timed plan as an ASCII Gantt chart.
 
-Critical-path steps are shown with solid blocks (█). Non-critical steps with lighter blocks (░). The summary includes total time, step count, critical path length, and float per step.
+Each step is rendered on two lines: a header line (start time, name, duration or flex annotation) and a bar line below. Non-critical steps show flex time in parentheses (e.g. `20m (55m flex)`). The summary line shows total time and resource utilization.
 
-| Flag                  | Default        | Description                                                                       |
-| --------------------- | -------------- | --------------------------------------------------------------------------------- |
-| `-o, --output <file>` | stdout         | Write output to file instead of stdout                                            |
-| `-q, --quiet`         | false          | Suppress summary stats, show only the schedule                                    |
-| `-f, --format <type>` | --             | Export format: `gantt`, `csv`, `json` (writes a file in addition to ASCII output) |
-| `--width <cols>`      | terminal width | Chart width in columns (default: terminal width or 80)                            |
+| Flag                          | Default        | Description                                                                       |
+| ----------------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `-o, --output <file>`         | stdout         | Write output to file instead of stdout                                            |
+| `-q, --quiet`                 | false          | Suppress summary stats, show only the schedule                                    |
+| `-f, --format <type>`         | --             | Export format: `gantt`, `csv`, `json` (writes a file in addition to ASCII output) |
+| `--width <cols>`              | terminal width | Chart width in columns (default: terminal width or 80)                            |
+| `-r, --resource <name=value>` | --             | Override resource availability (repeatable)                                       |
 
 ```bash
 # Solve and display in the terminal
@@ -98,6 +99,9 @@ skejj make myplan.json --quiet --output schedule.txt
 
 # Export JSON data with a fixed chart width
 skejj make myplan.json --format json --width 120
+
+# Override a resource capacity
+skejj make myplan.json --resource oven=2
 ```
 
 ---
@@ -204,90 +208,91 @@ Demonstrates: equipment resource constraint (Oven, capacity 1 -- chicken and pot
 $ npx skejj make examples/roast-chicken.json
 
 Roast Chicken Dinner
-A classic Sunday roast with oven-constrained cooking steps. The oven (capacity 1) forces chicken and potatoes to roast sequentially.
+A classic Sunday roast with oven-constrained cooking steps. The oven (capacity …
 
-                   17:00          17:30           18:00          18:30          19:00
-─ Mains ───────────────────────────────────────────────────────────────────────
-Prep chicken       ████████       │               │              │
-Roast chicken      │       █████████████████████████████████████████████
-Make gravy         │              │               │              │      █████
-Plate up           │              │               │              │           ███
-─ Sides ───────────────────────────────────────────────────────────────────────
-Prep potatoes      ░░░░░░░░░░     │               │              │
-Steam vegetables   ░░░░░░░░       │               │              │
-Roast potatoes     │              │               │      ░░░░░░░░░░░░░░░░░░░░
-─ Setup ───────────────────────────────────────────────────────────────────────
-Set table          ░░░░░          │               │              │
-Preheat Oven       │    ░░░       │               │              │
+17:00               17:30               18:00               18:30
+─ Mains ────────────────────────────────────────────────────────────────────────
+17:00 - Prep chicken                                                         15m
+██████████          │                   │                   │
 
---- Summary ---
-Total time: 2h
-Steps: 9
-Critical path: 2h (4 steps)
-Resources used: Oven
+17:15 - Roast chicken                                                     1h 30m
+│         ████████████████████████████████████████████████████████████████
 
---- Critical Path ---
-Prep chicken -> Roast chicken -> Make gravy -> Plate up
+18:45 - Make gravy                                                           10m
+│                   │                   │                   │         ███████
 
-Float per step:
-  Prep chicken: 17:00 -> 17:15  [0m (critical)]
-  Prep potatoes: 17:00 -> 17:20  [55m slack]
-  Steam vegetables: 17:00 -> 17:15  [100m slack]
-  Set table: 17:00 -> 17:10  [105m slack]
-  Preheat Oven: 17:10 -> 17:15  [10m slack]
-  Roast chicken: 17:15 -> 18:45  [0m (critical)]
-  Roast potatoes: 18:15 -> 18:55  [55m slack]
-  Make gravy: 18:45 -> 18:55  [0m (critical)]
-  Plate up: 18:55 -> 19:00  [0m (critical)]
+18:55 - Plate up                                                              5m
+│                   │                   │                   │                ███
+
+─ Sides ────────────────────────────────────────────────────────────────────────
+17:00 - Prep potatoes                                             20m (55m flex)
+█████████████       │                   │                   │
+
+17:00 - Steam vegetables                                       15m (1h 40m flex)
+██████████          │                   │                   │
+
+18:15 - Roast potatoes                                            40m (55m flex)
+│                   │                   │         ███████████████████████████
+
+─ Setup ────────────────────────────────────────────────────────────────────────
+17:00 - Set table                                              10m (1h 45m flex)
+███████             │                   │                   │
+
+17:10 - Preheat Oven                                               5m (10m flex)
+│      ███          │                   │                   │
+
+
+Total: 2h | Oven: 2/2
 ```
 
 ---
 
 ### Kids Birthday Party
 
-Demonstrates: people resource constraint (4 helpers shared across parallel tasks), forward scheduling from a party start time, and parallel tracks running simultaneously (food, venue setup, activities).
+Demonstrates: people resource constraint (4 helpers shared across parallel tasks), forward scheduling from a party start time, parallel tracks (food, venue setup, activities), and resource conflict warnings when steps are delayed.
 
 ```
 $ npx skejj make examples/birthday-party.json
 
 Kids Birthday Party
-Planning a kids birthday party with a team of helpers. People resource allocation ensures we never exceed 4 helpers simultaneously.
+Planning a kids birthday party with a team of helpers. People resource allocati…
 
-                   10:00   10:30    11:00   11:30   12:00    12:30   13:00   13:3013:40
-─ Food ────────────────────────────────────────────────────────────────────────
-Bake cake          ░░░░░░░░░░░░░░░░░│       │       │        │       │       │
-Ice cake           │       │        ░░░░░   │       │        │       │       │
-Serve cake         │       │        │       │       │        │      ████     │
-─ Venue ───────────────────────────────────────────────────────────────────────
-Buy supplies       █████████████████│       │       │        │       │       │
-Decorate venue     │       │        ████████████    │        │       │       │
-Blow up balloons   │       │        │       │      ░░░░░░░░  │       │       │
-Clean up           │       │        │       │       │        │       │  ████████
-─ Activities ──────────────────────────────────────────────────────────────────
-Welcome guests     │       │        │       │   ███ │        │       │       │
-Party games        │       │        │       │      █████████████████ │       │
-Set up games       │       │        │       │       │      ░░░░░░    │       │
+10:00      10:30      11:00      11:30      12:00      12:30     13:00
+─ Food ─────────────────────────────────────────────────────────────────────────
+10:00 - Bake cake                                               1h (1h 35m flex)
+██████████████████████│          │          │          │         │          │
 
---- Summary ---
-Total time: 3h 40m
-Steps: 10
-Critical path: 3h 40m (6 steps)
-Resources used: Helpers
+11:00 - Ice cake                                               20m (1h 35m flex)
+│          │          ███████    │          │          │         │          │
 
---- Critical Path ---
-Buy supplies -> Decorate venue -> Welcome guests -> Party games -> Serve cake -> Clean up
+12:55 - Serve cake                                                           15m
+│          │          │          │          │          │        █████       │
 
-Float per step:
-  Buy supplies: 10:00 -> 11:00  [0m (critical)]
-  Bake cake: 10:00 -> 11:00  [95m slack]
-  Decorate venue: 11:00 -> 11:45  [0m (critical)]
-  Ice cake: 11:00 -> 11:20  [95m slack]
-  Welcome guests: 11:45 -> 11:55  [0m (critical)]
-  Blow up balloons: 11:00 -> 11:30  [15m slack]
-  Party games: 11:55 -> 12:55  [0m (critical)]
-  Set up games: 11:00 -> 11:20  [25m slack]
-  Serve cake: 12:55 -> 13:10  [0m (critical)]
-  Clean up: 13:10 -> 13:40  [0m (critical)]
+─ Venue ────────────────────────────────────────────────────────────────────────
+10:00 - Buy supplies                                                          1h
+██████████████████████│          │          │          │         │          │
+
+11:00 - Decorate venue                                                       45m
+│          │          ████████████████      │          │         │          │
+
+11:55 - Blow up balloons                                          30m (15m flex)
+│          │          │          │        ███████████  │         │          │
+
+13:10 - Clean up                                                             30m
+│          │          │          │          │          │         │   ███████████
+
+─ Activities ───────────────────────────────────────────────────────────────────
+11:45 - Welcome guests                                                       10m
+│          │          │          │    ████  │          │         │          │
+
+11:55 - Party games                                                           1h
+│          │          │          │        ██████████████████████ │          │
+
+12:25 - Set up games                                              20m (25m flex)
+│          │          │          │          │        ███████     │          │
+
+
+Total: 3h 40m | Helpers: 4/4
 
 --- Warnings ---
   - Step 'Blow up balloons' was delayed beyond its available slack due to resource conflict with 'Helpers'
@@ -304,41 +309,43 @@ Demonstrates: ALAP (As Late As Possible) timing for dinner steps, multi-day mult
 $ npx skejj make examples/london-sightseeing.json
 
 London Weekend Sightseeing
-A two-day London itinerary covering major landmarks and cultural highlights. Dinner steps use ALAP timing to push them as late in the day as possible.
+A two-day London itinerary covering major landmarks and cultural highlights. Di…
 
-                        09:0010:0011:0012:0013:0014:0015:0016:0017:0018:0019:0020:0021:00
-─ Day 1 ───────────────────────────────────────────────────────────────────────
-Tower of London         █████████│    │    │   │    │    │   │    │    │   │
-Borough Market lunch    │    │   █████│    │   │    │    │   │    │    │   │
-Thames Southbank walk   │    │   │    ████ │   │    │    │   │    │    │   │
-Tate Modern             │    │   │    │   ███████   │    │   │    │    │   │
-Day 1 dinner            │    │   │    │    │   │ ████    │   │    │    │   │
-─ Day 2 ───────────────────────────────────────────────────────────────────────
-British Museum          │    │   │    │    │   │    │████████████ │    │   │
-Covent Garden lunch     │    │   │    │    │   │    │    │   │   ███   │   │
-Westminster walk        │    │   │    │    │   │    │    │   │    │ █████  │
-London Eye              │    │   │    │    │   │    │    │   │    │    │ ██│
-Day 2 dinner            │    │   │    │    │   │    │    │   │    │    │   █████
+09:00  10:00 11:00  12:00  13:00 14:00  15:00  16:00 17:00  18:00  19:00 20:00
+─ Day 1 ────────────────────────────────────────────────────────────────────────
+09:00 - Tower of London                                                       2h
+█████████████│      │      │     │      │      │     │      │      │     │
 
---- Summary ---
-Total time: 12h
-Steps: 10
-Critical path: 12h (10 steps)
+11:00 - Borough Market lunch                                                  1h
+│      │     ███████│      │     │      │      │     │      │      │     │
 
---- Critical Path ---
-Tower of London -> Borough Market lunch -> Thames Southbank walk -> Tate Modern -> Day 1 dinner -> British Museum -> Covent Garden lunch -> Westminster walk -> London Eye -> Day 2 dinner
+12:00 - Thames Southbank walk                                                45m
+│      │     │      █████  │     │      │      │     │      │      │     │
 
-Float per step:
-  Tower of London: 09:00 -> 11:00  [0m (critical)]
-  Borough Market lunch: 11:00 -> 12:00  [0m (critical)]
-  Thames Southbank walk: 12:00 -> 12:45  [0m (critical)]
-  Tate Modern: 12:45 -> 14:15  [0m (critical)]
-  Day 1 dinner: 14:15 -> 15:15  [0m (critical)]
-  British Museum: 15:15 -> 17:45  [0m (critical)]
-  Covent Garden lunch: 17:45 -> 18:30  [0m (critical)]
-  Westminster walk: 18:30 -> 19:30  [0m (critical)]
-  London Eye: 19:30 -> 20:00  [0m (critical)]
-  Day 2 dinner: 20:00 -> 21:00  [0m (critical)]
+12:45 - Tate Modern                                                       1h 30m
+│      │     │      │    ██████████     │      │     │      │      │     │
+
+14:15 - Day 1 dinner                                                          1h
+│      │     │      │      │     │ ███████     │     │      │      │     │
+
+─ Day 2 ────────────────────────────────────────────────────────────────────────
+15:15 - British Museum                                                    2h 30m
+│      │     │      │      │     │      │ ████████████████  │      │     │
+
+17:45 - Covent Garden lunch                                                  45m
+│      │     │      │      │     │      │      │     │    █████    │     │
+
+18:30 - Westminster walk                                                      1h
+│      │     │      │      │     │      │      │     │      │  ███████   │
+
+19:30 - London Eye                                                           30m
+│      │     │      │      │     │      │      │     │      │      │  ███│
+
+20:00 - Day 2 dinner                                                          1h
+│      │     │      │      │     │      │      │     │      │      │     ███████
+
+
+Total: 12h
 ```
 
 ---
